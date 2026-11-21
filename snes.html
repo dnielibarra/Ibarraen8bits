@@ -1,0 +1,2593 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Ibarra en 8 bits — Emulador SNES</title>
+<script src="https://cdn.jsdelivr.net/npm/nostalgist@0.23.0/dist/nostalgist.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<style>
+  :root{
+    --bg:#f2f3f5;
+    --surface:#ffffff;
+    --surface-2:#e8eaed;
+    --ink:#1b1e23;
+    --ink-soft:#4a5058;
+    --line:#d3d7dc;
+    --accent:#3f4a8a;
+    --accent-dark:#2c3563;
+    --accent-ink:#ffffff;
+    --screen-bg:#101216;
+    --good:#1d7a3a;
+    --warn-bg:#fff4d6;
+    --warn-ink:#6b5200;
+    --warn-line:#e3cf8a;
+    --shadow:0 10px 30px rgba(20,22,26,.12);
+    /* Colores de los botones como el control de la foto:
+       X azul, A rojo, Y verde, B amarillo. */
+    --btn-a:#d92b20;
+    --btn-a-dark:#9c1a12;
+    --btn-b:#eeb200;
+    --btn-b-dark:#a87e00;
+    --btn-x:#2456d6;
+    --btn-x-dark:#173d99;
+    --btn-y:#28a745;
+    --btn-y-dark:#1a7030;
+    /* Carcasa del control: gris claro tipo SNES, cruceta negra. */
+    --deck:#d9dade;
+    --deck-line:#b4b6ba;
+    --deck-ink:#26292f;
+    --cross:#22252a;
+    --cross-ink:#f2f3f5;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#14161a;
+      --surface:#1e2126;
+      --surface-2:#2a2e35;
+      --ink:#eef0f3;
+      --ink-soft:#aeb5bf;
+      --line:#343943;
+      --accent:#7d8bd4;
+      --accent-dark:#5a68ad;
+      --accent-ink:#101216;
+      --screen-bg:#000000;
+      --good:#4cc06d;
+      --warn-bg:#332b10;
+      --warn-ink:#f0d48a;
+      --warn-line:#5c4d1c;
+      --shadow:0 10px 30px rgba(0,0,0,.45);
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  [hidden]{display:none !important}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:Verdana, Geneva, "Segoe UI", Tahoma, sans-serif;
+    line-height:1.5;
+    -webkit-tap-highlight-color:transparent;
+  }
+  button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height:2.25rem; }
+  main{max-width:880px;margin:0 auto;padding:16px 14px 40px}
+
+  .site-title{
+    font-size:clamp(2.2rem, 8.5vw, 3.6rem);
+    line-height:1.05;margin:8px 0 6px;
+    font-weight:900;letter-spacing:-.02em;
+    text-shadow:3px 3px 0 var(--line);
+  }
+  .site-title .accent{color:var(--accent)}
+  .lead{color:var(--ink-soft);margin:0 0 16px;font-size:.95rem;max-width:64ch}
+  h2{font-size:1.05rem;margin:0 0 8px}
+  p{margin:0 0 10px}
+
+  /* ---------- Cara principal ---------- */
+  .home-hero{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:18px;
+    box-shadow:var(--shadow);
+    padding:28px 20px 22px;
+    text-align:center;
+  }
+  .home-hero.dragover{outline:3px dashed var(--accent);outline-offset:-8px}
+  .home-hero .cart{
+    width:110px;height:78px;border:3px solid #565d68;border-radius:14px 14px 6px 6px;
+    position:relative;background:#22262d;margin:0 auto 14px;
+  }
+  .home-hero .cart::before{
+    content:"";position:absolute;left:16px;right:16px;top:12px;height:22px;
+    background:var(--accent);border-radius:3px;
+  }
+  .home-hero .cart::after{
+    content:"";position:absolute;left:34px;right:34px;bottom:0;height:14px;
+    background:#171a1f;border-radius:3px 3px 0 0;
+  }
+  .home-hero h2{font-size:1.25rem;margin:0 0 6px}
+  .home-hero .sub{color:var(--ink-soft);font-size:.92rem;max-width:52ch;margin:0 auto 18px}
+  .btn-xl{
+    appearance:none;border:1px solid var(--accent-dark);background:var(--accent);
+    color:var(--accent-ink);font:inherit;font-size:1.08rem;font-weight:800;
+    padding:16px 26px;border-radius:999px;cursor:pointer;min-height:60px;
+    box-shadow:0 5px 0 var(--accent-dark);
+    width:100%;max-width:440px;
+  }
+  .btn-xl:active{transform:translateY(2px);box-shadow:0 2px 0 var(--accent-dark)}
+  .btn-resume{
+    appearance:none;border:1px solid var(--line);background:var(--surface-2);
+    color:var(--ink);font:inherit;font-size:.95rem;font-weight:700;
+    padding:12px 20px;border-radius:999px;cursor:pointer;min-height:48px;
+    width:100%;max-width:440px;margin-top:12px;
+  }
+  .home-hero .drag-note{color:var(--ink-soft);font-size:.82rem;margin:14px 0 0}
+  .home-hero .gp-status{margin-left:auto;margin-right:auto;text-align:left}
+
+  /* ---------- Zona de juego ----------
+     Vertical: pantalla arriba, barra debajo pegada a la pantalla, placa
+     grabada, y el «control» gris debajo: gatillos L/R, cruceta negra a
+     la izquierda, SELECT/START al centro y el rombo X/Y/A/B a la derecha.
+     Horizontal (celular girado): cruceta a la izquierda, pantalla al
+     centro y botones a la derecha, sin recargar. */
+  .playfield{
+    display:grid;gap:8px 14px;
+    grid-template-columns:1fr 1fr;
+    grid-template-areas:
+      "console console"
+      "toolbar toolbar"
+      "plate   plate"
+      "shoulders shoulders"
+      "left    right"
+      "meta    meta";
+    align-items:start;
+  }
+  .console{grid-area:console}
+  .toolbar{grid-area:toolbar}
+  .brand-plate{grid-area:plate}
+  .ctl-shoulders{grid-area:shoulders}
+  .ctl-left{grid-area:left;justify-self:start}
+  .ctl-right{grid-area:right;justify-self:end}
+  .ctl-meta{grid-area:meta;justify-self:center}
+
+  .console{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:18px;
+    box-shadow:var(--shadow);
+    padding:14px;
+  }
+  .screen-wrap{
+    position:relative;
+    background:var(--screen-bg);
+    border-radius:10px;
+    overflow:hidden;
+    aspect-ratio:4/3;
+    width:100%;
+    max-width:800px;
+    margin:0 auto;
+    border:4px solid #26292f;
+  }
+  /* Nuestro propio canvas: Nostalgist dibuja el juego DIRECTO aquí.
+     No hay reproductor ni interfaz de nadie más encima.
+     OJO: al arrancar, Nostalgist le CAMBIA el id a nuestro canvas
+     (lo deja como id="canvas") y el motor (Emscripten) le congela un
+     tamaño fijo en píxeles con estilos en línea, medido al momento de
+     cargar el juego. Por eso el CSS se aplica por POSICIÓN
+     (.screen-wrap canvas) y con !important: así el lienzo llena
+     SIEMPRE todo el marco — vista normal, vertical, horizontal y
+     pantalla completa — gire el celular o entre/salga de pantalla
+     completa, sin importar el id ni el tamaño congelado en línea.
+     OJO: llenar el marco con CSS no basta; el búfer interno del
+     lienzo debe ir en PÍXELES DE DISPOSITIVO (CSS × devicePixelRatio)
+     o RetroArch dibuja agrandado y recortado — eso se sincroniza
+     desde el JavaScript (wrapDeviceSize / fitCanvasBuffer). */
+  .screen-wrap canvas{
+    display:block;
+    width:100% !important;height:100% !important;
+    image-rendering:pixelated;
+    image-rendering:crisp-edges;
+    background:#000;
+    outline:none;
+  }
+  .emu-loading{
+    position:absolute;inset:0;z-index:8;
+    display:flex;flex-direction:column;gap:10px;
+    align-items:center;justify-content:center;text-align:center;
+    color:#eef0f3;padding:20px;font-size:.92rem;background:rgba(10,11,14,.72);
+  }
+  .emu-loading .spin{
+    width:34px;height:34px;border-radius:50%;flex:none;
+    border:4px solid rgba(255,255,255,.25);border-top-color:#fff;
+    animation:spin 0.9s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion: reduce){
+    .emu-loading .spin{animation:none}
+  }
+  .fps-overlay{
+    position:absolute;top:8px;left:8px;z-index:6;
+    font-family:ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size:.85rem;font-weight:700;letter-spacing:.03em;
+    color:#fff;background:rgba(0,0,0,.48);
+    padding:2px 8px;border-radius:5px;
+    pointer-events:none;user-select:none;-webkit-user-select:none;
+  }
+  .playfield.controls-hidden .ctl-left,
+  .playfield.controls-hidden .ctl-right,
+  .playfield.controls-hidden .ctl-meta,
+  .playfield.controls-hidden .ctl-shoulders{display:none !important}
+
+  .statusbar{
+    display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;
+    max-width:800px;margin:10px auto 0;
+    font-family:ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size:.78rem;color:var(--ink-soft);
+  }
+  .statusbar .dot{width:9px;height:9px;border-radius:50%;background:#9aa1ab;display:inline-block;flex:none}
+  .statusbar .dot.on{background:var(--good)}
+  .statusbar .dot.paused{background:#d99a06}
+  #statusText{color:var(--ink);font-weight:700}
+  .statusbar .spacer{flex:1}
+
+  .gp-status{
+    display:flex;gap:8px;align-items:center;
+    max-width:800px;margin:10px auto 0;padding:8px 12px;
+    background:var(--surface-2);border:1px solid var(--line);border-radius:999px;
+    font-size:.82rem;color:var(--ink-soft);
+  }
+  .gp-status .gp-dot{width:9px;height:9px;border-radius:50%;background:#9aa1ab;flex:none}
+  .gp-status.connected{color:var(--ink)}
+  .gp-status.connected .gp-dot{background:var(--good)}
+  .gp-status strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .toolbar{
+    display:flex;flex-wrap:wrap;gap:8px;justify-content:center;
+    width:100%;max-width:800px;margin:2px auto 0;
+  }
+  .game-info{max-width:800px;margin:14px auto 0}
+  .btn{
+    appearance:none;border:1px solid var(--line);background:var(--surface-2);
+    color:var(--ink);font:inherit;font-size:.86rem;font-weight:700;
+    padding:9px 14px;border-radius:999px;cursor:pointer;min-height:44px;
+  }
+  .btn:hover{filter:brightness(1.05)}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--accent);border-color:var(--accent-dark);color:var(--accent-ink)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .btn[aria-pressed="true"]{outline:3px solid var(--accent);outline-offset:1px}
+  #saveBtn[aria-pressed="true"]{outline:3px solid var(--accent);outline-offset:2px;background:var(--accent);color:var(--accent-ink);border-color:var(--accent-dark)}
+  .menu-btn{
+    display:none;appearance:none;cursor:pointer;
+    width:44px;height:44px;border-radius:12px;
+    border:1px solid var(--line);background:var(--surface-2);color:var(--ink);
+    font-size:1.2rem;font-weight:900;line-height:1;
+    align-items:center;justify-content:center;
+  }
+  .menu-btn:active{transform:translateY(1px)}
+  .banner{
+    max-width:800px;margin:12px auto 0;padding:10px 12px;border-radius:8px;
+    background:var(--warn-bg);color:var(--warn-ink);border:1px solid var(--warn-line);
+    font-size:.86rem;display:none;
+  }
+  .banner.show{display:block}
+  .state-hint{
+    max-width:800px;margin:8px auto 0;text-align:center;
+    font-size:.8rem;color:var(--ink-soft);
+  }
+  .state-hint strong{color:var(--ink)}
+
+  /* Placa grabada «Ibarra en 8 bits» debajo de la barra (vertical). */
+  .brand-plate{
+    text-align:center;
+    padding:6px 10px 2px;
+    font-weight:900;
+    letter-spacing:.28em;
+    text-transform:uppercase;
+    font-size:clamp(1rem, 4.6vw, 1.35rem);
+    color:#787f89;
+    opacity:.62;
+    text-shadow:0 1px 0 rgba(255,255,255,.7), 0 -1px 1px rgba(0,0,0,.32);
+    user-select:none;-webkit-user-select:none;
+    pointer-events:none;
+    white-space:nowrap;
+  }
+  .brand-plate .plate-sub{
+    display:block;margin-top:2px;
+    font-size:.58rem;letter-spacing:.42em;font-weight:700;
+  }
+  @media (prefers-color-scheme: dark){
+    .brand-plate{text-shadow:0 1px 0 rgba(0,0,0,.7), 0 -1px 1px rgba(255,255,255,.18);opacity:.38}
+  }
+  /* Placa en horizontal: arriba a la derecha, sobre los botones. */
+  .brand-plate-land{
+    display:none;
+    text-align:center;
+    font-weight:900;
+    letter-spacing:.24em;
+    text-transform:uppercase;
+    user-select:none;-webkit-user-select:none;
+    pointer-events:none;
+    white-space:nowrap;
+  }
+  .brand-plate-land .plate-sub{
+    display:block;margin-top:2px;
+    font-size:.55rem;letter-spacing:.42em;font-weight:700;
+  }
+
+  /* ---------- El control estilo SNES (como el de la foto) ---------- */
+  .ctl{
+    background:var(--deck);border:1px solid var(--deck-line);
+    border-radius:18px;padding:10px;box-shadow:var(--shadow);
+    user-select:none;-webkit-user-select:none;color:var(--deck-ink);
+  }
+  .ctl-meta{background:none;border:0;box-shadow:none;padding:0}
+  .ctl-shoulders{background:none;border:0;box-shadow:none;padding:0 2px}
+
+  /* Gatillos L y R: píldoras oscuras sobre los hombros del control. */
+  .sh-row{display:flex;justify-content:space-between;gap:12px;touch-action:none}
+  .sh-btn{
+    appearance:none;border:0;cursor:pointer;touch-action:none;
+    width:104px;min-height:36px;border-radius:10px 10px 7px 7px;
+    background:linear-gradient(#3b4048, #22252a 60%, #17191d);
+    color:#f2f3f5;font:inherit;font-size:.86rem;font-weight:900;letter-spacing:.22em;
+    box-shadow:0 4px 0 rgba(0,0,0,.4), 0 6px 8px rgba(0,0,0,.22);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .sh-btn.active{filter:brightness(1.8)}
+
+  /* Cruceta negra de una sola pieza, con pivote central, como la foto. */
+  .dpad{
+    display:grid;grid-template-columns:repeat(3,clamp(46px,13.5vw,56px));grid-template-rows:repeat(3,clamp(46px,13.5vw,56px));
+    touch-action:none;gap:0;
+    clip-path:polygon(33.333% 0,66.666% 0,66.666% 33.333%,100% 33.333%,100% 66.666%,66.666% 66.666%,66.666% 100%,33.333% 100%,33.333% 66.666%,0 66.666%,0 33.333%,33.333% 33.333%);
+    filter:drop-shadow(0 4px 0 rgba(0,0,0,.35)) drop-shadow(0 6px 8px rgba(0,0,0,.22));
+  }
+  .dpad button{
+    appearance:none;border:0;background:var(--cross);color:var(--cross-ink);
+    font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    touch-action:none;border-radius:0;margin:0;padding:0;min-height:0;
+  }
+  .dpad .up{grid-area:1/2}
+  .dpad .left{grid-area:2/1}
+  .dpad .mid{grid-area:2/2;background:var(--cross);position:relative}
+  .dpad .mid::after{
+    content:"";position:absolute;left:50%;top:50%;width:26px;height:26px;
+    transform:translate(-50%,-50%);border-radius:50%;
+    background:radial-gradient(circle at 38% 34%, #4a5058, #14161a 72%);
+    box-shadow:inset 0 1px 2px rgba(255,255,255,.22), 0 1px 2px rgba(0,0,0,.6);
+    pointer-events:none;
+  }
+  .dpad .right{grid-area:2/3}
+  .dpad .down{grid-area:3/2}
+  .dpad button.active,.meta-row button.active{filter:brightness(1.7)}
+
+  /* Rombo de botones de colores: X arriba, Y izquierda, A derecha, B abajo,
+     cada uno con su color de la foto y su letra impresa EN el botón.
+     Sin letritas extra sobre la carcasa: se veían fuera de los botones. */
+  .abxy{
+    display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);
+    gap:3px;touch-action:none;padding:2px;
+  }
+  .abxy .cell{display:flex;align-items:center;justify-content:center;position:relative}
+  .abxy .cx{grid-area:1/2}
+  .abxy .cy{grid-area:2/1}
+  .abxy .ca{grid-area:2/3}
+  .abxy .cb{grid-area:3/2}
+  .abxy button{
+    appearance:none;border:0;width:52px;height:52px;border-radius:50%;flex:none;
+    color:#fff;font:inherit;font-weight:900;font-size:1.08rem;
+    cursor:pointer;touch-action:none;min-height:0;padding:0;
+    text-shadow:0 1px 2px rgba(0,0,0,.45);
+  }
+  .abxy .bx{background:radial-gradient(circle at 35% 30%, #6f97ff, var(--btn-x) 55%, var(--btn-x-dark));box-shadow:0 5px 0 var(--btn-x-dark), 0 7px 10px rgba(0,0,0,.28)}
+  .abxy .ba{background:radial-gradient(circle at 35% 30%, #ff7a6e, var(--btn-a) 55%, var(--btn-a-dark));box-shadow:0 5px 0 var(--btn-a-dark), 0 7px 10px rgba(0,0,0,.28)}
+  .abxy .by{background:radial-gradient(circle at 35% 30%, #6fe08a, var(--btn-y) 55%, var(--btn-y-dark));box-shadow:0 5px 0 var(--btn-y-dark), 0 7px 10px rgba(0,0,0,.28)}
+  .abxy .bb{background:radial-gradient(circle at 35% 30%, #ffd94d, var(--btn-b) 55%, var(--btn-b-dark));box-shadow:0 5px 0 var(--btn-b-dark), 0 7px 10px rgba(0,0,0,.28);color:#4a3800;text-shadow:0 1px 0 rgba(255,255,255,.4)}
+  .abxy button:active{transform:translateY(3px)}
+  .abxy button.active{filter:brightness(1.45)}
+
+  /* SELECT / START: píldoras grises oscuras al centro, como la foto. */
+  .meta-row{display:flex;gap:14px;justify-content:center}
+  .meta-row button{
+    appearance:none;border:0;background:#3a3e45;color:#eef0f3;
+    font:inherit;font-size:.72rem;font-weight:800;letter-spacing:.1em;
+    padding:9px 18px;border-radius:999px;cursor:pointer;touch-action:none;min-height:38px;
+    box-shadow:0 3px 0 rgba(0,0,0,.4);
+    transform:rotate(-18deg);
+  }
+  .pad-note{text-align:center;color:var(--ink-soft);font-size:.8rem;margin:10px 0 0;max-width:56ch}
+
+  /* Botones de colores estilo SNES (referencia visual en la ayuda) */
+  .snes-btns{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 2px}
+  .snes-btns span{
+    display:inline-flex;align-items:center;gap:7px;
+    font-size:.85rem;font-weight:700;color:var(--ink);
+    background:var(--surface-2);border:1px solid var(--line);
+    border-radius:999px;padding:6px 12px 6px 7px;min-height:36px;
+  }
+  .snes-btns i{
+    width:24px;height:24px;border-radius:50%;flex:none;
+    display:inline-flex;align-items:center;justify-content:center;
+    color:#fff;font-style:normal;font-size:.78rem;font-weight:900;
+    box-shadow:inset 0 -3px 0 rgba(0,0,0,.25);
+  }
+  .snes-btns .ba{background:var(--btn-a)}
+  .snes-btns .bb{background:var(--btn-b);color:#4a3800}
+  .snes-btns .bx{background:var(--btn-x)}
+  .snes-btns .by{background:var(--btn-y)}
+
+  /* ---------- Modo horizontal (paisaje) en pantallas bajas ---------- */
+  @media (orientation: landscape){
+    .brand-plate{display:none}
+  }
+  @media (orientation: landscape) and (max-height: 620px){
+    main{max-width:1200px;padding:8px 10px 28px}
+    #gameView .playfield{
+      grid-template-columns:auto minmax(0,1fr) auto;
+      grid-template-areas:
+        "shoulders shoulders shoulders"
+        "left console right"
+        "left toolbar right"
+        "left meta    right";
+      align-items:center;gap:8px 10px;
+    }
+    #gameView .console{padding:8px}
+    /* El ancho sale del ALTO disponible: solo se reservan ~128px para
+       la fila de gatillos L/R, la fila de SELECT/START y los rellenos.
+       La barra de botones NO se reserva: en horizontal vive dentro del
+       menú ☰ flotante y no ocupa fila. Antes se reservaban 205px y en
+       un celular horizontal (~360–430px de alto) el juego quedaba
+       chiquito en el centro con mucho blanco alrededor. */
+    #gameView .screen-wrap{
+      max-width:none;
+      width:min(100%, calc((100dvh - 128px) * 4 / 3));
+    }
+    #gameView .statusbar{margin-top:6px}
+    #gameView .gp-status{margin-top:6px;padding:5px 10px;font-size:.76rem}
+    #gameView .toolbar{margin-top:8px}
+    #gameView .toolbar .btn{min-height:36px;padding:6px 11px;font-size:.8rem}
+    #gameView .dpad{grid-template-columns:repeat(3,54px);grid-template-rows:repeat(3,54px)}
+    #gameView .ctl-left{align-self:end;transform:translateY(-14px)}
+    #gameView .ctl-right{align-self:end}
+    #gameView .abxy{grid-template-columns:repeat(3,48px);grid-template-rows:repeat(3,48px)}
+    #gameView .abxy button{width:48px;height:48px}
+    #gameView .pad-note{display:none}
+  }
+
+  /* ---------- Pantalla completa inmersiva ----------
+     Fondo negro, el juego llena todo el alto o todo el ancho y los
+     controles flotan semitransparentes SOBRE la pantalla: cruceta a la
+     izquierda, rombo de colores a la derecha, L/R en los hombros,
+     SELECT/START abajo al centro. Mismo modo simulado (.fs-fake) para
+     navegadores sin Fullscreen API. */
+  .playfield:fullscreen,
+  .playfield.fs-fake{
+    background:#000;
+    position:relative;
+    display:block;
+    width:100%;height:100%;
+    padding:0;margin:0;
+  }
+  .playfield.fs-fake{
+    position:fixed;inset:0;z-index:9999;
+    height:100dvh;
+    overflow:hidden;
+  }
+  body.fs-locked{overflow:hidden}
+  .playfield:fullscreen .console,
+  .playfield.fs-fake .console{
+    background:transparent;border:0;box-shadow:none;border-radius:0;
+    padding:0;width:100%;height:100%;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .playfield:fullscreen .screen-wrap,
+  .playfield.fs-fake .screen-wrap{
+    max-width:none;flex:none;
+    width:min(100dvw, calc(100dvh * 4 / 3));
+    height:min(100dvh, calc(100dvw * 3 / 4));
+    border:0;border-radius:0;
+  }
+  /* OJO especificidad: la regla de horizontal normal de arriba usa
+     #gameView (un ID) y le GANABA a la regla de pantalla completa de
+     aquí, así que en horizontal a pantalla completa la pantalla se
+     quedaba con el ancho chico de la vista normal ((alto − 128px) ×
+     4/3, ~la mitad del alto) en vez de llenar todo el alto. Esta
+     regla, también con #gameView y más selectores, restablece el
+     tamaño completo en pantalla completa, en cualquier orientación. */
+  #gameView .playfield:fullscreen .screen-wrap,
+  #gameView .playfield.fs-fake .screen-wrap{
+    width:min(100dvw, calc(100dvh * 4 / 3));
+    height:min(100dvh, calc(100dvw * 3 / 4));
+  }
+  @media (orientation: portrait){
+    .playfield:fullscreen .console,
+    .playfield.fs-fake .console{align-items:flex-start}
+  }
+  .playfield:fullscreen .statusbar,
+  .playfield:fullscreen .gp-status,
+  .playfield:fullscreen .pad-note,
+  .playfield:fullscreen .state-hint,
+  .playfield.fs-fake .statusbar,
+  .playfield.fs-fake .gp-status,
+  .playfield.fs-fake .pad-note,
+  .playfield.fs-fake .state-hint{display:none}
+  .playfield:fullscreen .banner,
+  .playfield.fs-fake .banner{
+    position:absolute;top:52px;left:50%;transform:translateX(-50%);
+    z-index:30;width:min(92vw,480px);margin:0;
+  }
+  .playfield:fullscreen .toolbar,
+  .playfield.fs-fake .toolbar{
+    position:absolute;top:calc(6px + env(safe-area-inset-top, 0px));right:8px;
+    left:auto;max-width:none;margin:0;z-index:30;gap:6px;
+    justify-content:flex-end;opacity:.92;
+  }
+  .playfield:fullscreen .toolbar .btn,
+  .playfield.fs-fake .toolbar .btn{
+    min-height:34px;padding:5px 10px;font-size:.76rem;
+    background:rgba(24,26,31,.62);color:#eef0f3;border-color:rgba(255,255,255,.45);
+  }
+  .playfield:fullscreen .toolbar .btn.primary,
+  .playfield.fs-fake .toolbar .btn.primary{background:rgba(24,26,31,.62);border-color:rgba(255,255,255,.45);color:#eef0f3}
+  .playfield:fullscreen #changeRomBtn,
+  .playfield.fs-fake #changeRomBtn{display:none}
+  .playfield:fullscreen .brand-plate,
+  .playfield.fs-fake .brand-plate{display:none}
+  .playfield:fullscreen .ctl,
+  .playfield.fs-fake .ctl{
+    position:absolute;z-index:20;
+    background:transparent;border:0;box-shadow:none;border-radius:0;padding:0;
+  }
+  .playfield:fullscreen .ctl-left,
+  .playfield.fs-fake .ctl-left{
+    left:calc(10px + env(safe-area-inset-left, 0px));
+    bottom:calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+  .playfield:fullscreen .ctl-right,
+  .playfield.fs-fake .ctl-right{
+    right:calc(10px + env(safe-area-inset-right, 0px));
+    bottom:calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+  .playfield:fullscreen .ctl-meta,
+  .playfield.fs-fake .ctl-meta{
+    left:50%;transform:translateX(-50%);
+    bottom:calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+  .playfield:fullscreen .ctl-shoulders,
+  .playfield.fs-fake .ctl-shoulders{
+    position:absolute;z-index:20;left:calc(10px + env(safe-area-inset-left, 0px));
+    right:calc(10px + env(safe-area-inset-right, 0px));
+    bottom:calc(248px + env(safe-area-inset-bottom, 0px));
+  }
+  .playfield:fullscreen .dpad,
+  .playfield.fs-fake .dpad{
+    grid-template-columns:repeat(3,56px);grid-template-rows:repeat(3,56px);
+  }
+  .playfield:fullscreen .dpad button,
+  .playfield.fs-fake .dpad button{
+    background:rgba(22,24,29,.55);color:rgba(255,255,255,.92);
+  }
+  .playfield:fullscreen .dpad .mid,
+  .playfield.fs-fake .dpad .mid{background:rgba(22,24,29,.55)}
+  .playfield:fullscreen .dpad button.active,
+  .playfield.fs-fake .dpad button.active,
+  .playfield:fullscreen .meta-row button.active,
+  .playfield.fs-fake .meta-row button.active,
+  .playfield:fullscreen .sh-btn.active,
+  .playfield.fs-fake .sh-btn.active{
+    background:rgba(255,255,255,.38);filter:none;
+  }
+  .playfield:fullscreen .abxy,
+  .playfield.fs-fake .abxy{
+    grid-template-columns:repeat(3,58px);grid-template-rows:repeat(3,58px);
+  }
+  .playfield:fullscreen .abxy button,
+  .playfield.fs-fake .abxy button{
+    width:58px;height:58px;
+    border:1.5px solid rgba(255,255,255,.45);
+    font-size:1.12rem;
+  }
+  .playfield:fullscreen .abxy .bx,
+  .playfield.fs-fake .abxy .bx{background:radial-gradient(circle at 35% 30%, rgba(111,151,255,.85), rgba(36,86,214,.65) 55%, rgba(23,61,153,.65))}
+  .playfield:fullscreen .abxy .ba,
+  .playfield.fs-fake .abxy .ba{background:radial-gradient(circle at 35% 30%, rgba(255,122,110,.85), rgba(217,43,32,.65) 55%, rgba(156,26,18,.65))}
+  .playfield:fullscreen .abxy .by,
+  .playfield.fs-fake .abxy .by{background:radial-gradient(circle at 35% 30%, rgba(111,224,138,.85), rgba(40,167,69,.65) 55%, rgba(26,112,48,.65))}
+  .playfield:fullscreen .abxy .bb,
+  .playfield.fs-fake .abxy .bb{background:radial-gradient(circle at 35% 30%, rgba(255,217,77,.88), rgba(238,178,0,.68) 55%, rgba(168,126,0,.68))}
+  .playfield:fullscreen .abxy button.active,
+  .playfield.fs-fake .abxy button.active{background:rgba(255,255,255,.38);filter:none}
+  .playfield:fullscreen .meta-row button,
+  .playfield.fs-fake .meta-row button{
+    background:rgba(22,24,29,.5);color:rgba(255,255,255,.9);
+    border:1.5px solid rgba(255,255,255,.5);
+    min-height:34px;padding:6px 16px;font-size:.7rem;
+    box-shadow:none;
+  }
+  .playfield:fullscreen .sh-btn,
+  .playfield.fs-fake .sh-btn{
+    background:rgba(22,24,29,.5);color:rgba(255,255,255,.9);
+    border:1.5px solid rgba(255,255,255,.5);
+    box-shadow:none;width:88px;min-height:32px;
+  }
+  @media (orientation: landscape){
+    .playfield:fullscreen .ctl-left,
+    .playfield.fs-fake .ctl-left,
+    .playfield:fullscreen .ctl-right,
+    .playfield.fs-fake .ctl-right{
+      bottom:auto;top:62%;transform:translateY(-50%);
+    }
+    .playfield:fullscreen .ctl-left,
+    .playfield.fs-fake .ctl-left{left:calc(14px + env(safe-area-inset-left, 0px))}
+    .playfield:fullscreen .ctl-right,
+    .playfield.fs-fake .ctl-right{right:calc(14px + env(safe-area-inset-right, 0px))}
+    .playfield:fullscreen .dpad,
+    .playfield.fs-fake .dpad{
+      grid-template-columns:repeat(3,62px);grid-template-rows:repeat(3,62px);
+    }
+    .playfield:fullscreen .abxy,
+    .playfield.fs-fake .abxy{
+      grid-template-columns:repeat(3,62px);grid-template-rows:repeat(3,62px);
+    }
+    .playfield:fullscreen .abxy button,
+    .playfield.fs-fake .abxy button{width:62px;height:62px}
+    .playfield:fullscreen .ctl-shoulders,
+    .playfield.fs-fake .ctl-shoulders{
+      bottom:auto;top:19%;
+    }
+  }
+  /* En horizontal a pantalla completa SOLO sube la cruceta (como quedó
+     acordado en el de NES): los botones de colores están bien al 62%,
+     pero la cruceta baja pegada a la esquina redondeada no se puede
+     accionar bien; queda centrada al 54% de la altura. */
+  @media (orientation: landscape){
+    #gameView .playfield:fullscreen .ctl-left,
+    #gameView .playfield.fs-fake .ctl-left{
+      bottom:auto;top:54%;transform:translateY(-50%);
+    }
+  }
+
+  /* ---------- Pantalla completa vertical: barra DEBAJO de la pantalla ---------- */
+  @media (orientation: portrait){
+    #gameView .playfield:fullscreen .toolbar,
+    #gameView .playfield.fs-fake .toolbar{
+      top:calc(min(100dvw, calc(100dvh * 4 / 3)) * 3 / 4 + 10px);
+      left:50%;right:auto;transform:translateX(-50%);
+      width:max-content;max-width:96vw;justify-content:center;gap:5px;
+    }
+    #gameView .playfield:fullscreen .toolbar .btn,
+    #gameView .playfield.fs-fake .toolbar .btn{
+      min-height:32px;padding:4px 9px;font-size:.74rem;
+    }
+    #gameView .playfield:fullscreen .brand-plate,
+    #gameView .playfield.fs-fake .brand-plate{
+      display:block;position:absolute;z-index:15;
+      left:50%;transform:translateX(-50%);width:100%;
+      top:calc(min(100dvw, calc(100dvh * 4 / 3)) * 3 / 4 + 196px);
+      color:rgba(226,230,236,.66);opacity:1;
+      text-shadow:0 1px 1px rgba(255,255,255,.22), 0 -1px 2px rgba(0,0,0,.95), 0 2px 3px rgba(0,0,0,.8);
+    }
+    #gameView .playfield:fullscreen .brand-plate .plate-sub,
+    #gameView .playfield.fs-fake .brand-plate .plate-sub{color:rgba(200,205,213,.55)}
+  }
+  @media (orientation: landscape){
+    #gameView .playfield:fullscreen .brand-plate,
+    #gameView .playfield.fs-fake .brand-plate{display:none}
+  }
+
+  /* ---------- Menú hamburguesa en horizontal ---------- */
+  @media (orientation: landscape) and (max-height: 620px){
+    #gameView .playfield{position:relative}
+    #gameView .menu-btn{
+      display:flex;position:absolute;z-index:45;
+      top:6px;left:6px;
+    }
+    #gameView .playfield .toolbar{
+      display:none;position:absolute;z-index:44;
+      top:56px;left:6px;margin:0;
+      width:236px;max-width:78vw;
+      max-height:calc(100dvh - 72px);overflow-y:auto;
+      flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:6px;
+      background:var(--surface);border:1px solid var(--line);
+      border-radius:14px;box-shadow:var(--shadow);padding:8px;
+    }
+    #gameView .playfield.menu-open .toolbar{display:flex}
+    #gameView .playfield .toolbar .btn{width:100%;text-align:left}
+  }
+  @media (orientation: landscape){
+    #gameView .playfield:fullscreen .menu-btn,
+    #gameView .playfield.fs-fake .menu-btn{
+      display:flex;position:absolute;z-index:45;
+      top:calc(8px + env(safe-area-inset-top, 0px));
+      left:calc(8px + env(safe-area-inset-left, 0px));
+      background:rgba(24,26,31,.62);color:#eef0f3;border-color:rgba(255,255,255,.45);
+    }
+    #gameView .playfield:fullscreen .toolbar,
+    #gameView .playfield.fs-fake .toolbar{
+      display:none;position:absolute;z-index:44;
+      top:calc(60px + env(safe-area-inset-top, 0px));
+      left:calc(8px + env(safe-area-inset-left, 0px));
+      right:auto;margin:0;opacity:1;
+      width:240px;max-width:78vw;
+      max-height:calc(100dvh - 84px);overflow-y:auto;
+      flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:6px;
+      background:rgba(12,13,16,.95);border:1px solid rgba(255,255,255,.25);
+      border-radius:14px;padding:8px;
+    }
+    #gameView .playfield.menu-open:fullscreen .toolbar,
+    #gameView .playfield.menu-open.fs-fake .toolbar{display:flex}
+    #gameView .playfield:fullscreen .toolbar .btn,
+    #gameView .playfield.fs-fake .toolbar .btn{width:100%;text-align:left}
+  }
+
+  /* ---------- Placa en horizontal a pantalla completa ---------- */
+  @media (orientation: landscape){
+    #gameView .playfield:fullscreen .brand-plate-land,
+    #gameView .playfield.fs-fake .brand-plate-land{
+      display:block;position:absolute;z-index:15;
+      top:calc(10px + env(safe-area-inset-top, 0px));
+      right:calc(6px + env(safe-area-inset-right, 0px));
+      width:224px;
+      font-size:.9rem;
+      color:rgba(226,230,236,.66);opacity:1;
+      text-shadow:0 1px 1px rgba(255,255,255,.22), 0 -1px 2px rgba(0,0,0,.95), 0 2px 3px rgba(0,0,0,.8);
+    }
+    #gameView .playfield:fullscreen .brand-plate-land .plate-sub,
+    #gameView .playfield.fs-fake .brand-plate-land .plate-sub{color:rgba(200,205,213,.55)}
+  }
+
+  /* ---------- Ayuda ---------- */
+  .cols{display:grid;gap:14px;margin-top:18px}
+  @media (min-width:680px){.cols{grid-template-columns:1fr 1fr}}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .card ul{margin:0;padding-left:20px}
+  .card li{margin-bottom:6px;font-size:.92rem}
+  .card p{font-size:.92rem}
+  .keys{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:.9rem;margin:0}
+  .keys dt{margin:0}
+  .keys dd{margin:0;color:var(--ink-soft)}
+  kbd{
+    font-family:ui-monospace, Consolas, monospace;font-size:.78rem;
+    background:var(--surface-2);border:1px solid var(--line);border-bottom-width:2px;
+    border-radius:5px;padding:1px 6px;white-space:nowrap;
+  }
+  footer{margin-top:20px;color:var(--ink-soft);font-size:.82rem;text-align:center}
+
+  /* ---------- Control remoto (segundo teléfono, estilo PepoMote) ---------- */
+  .btn-remote{
+    appearance:none;border:1px solid var(--line);background:var(--surface);
+    color:var(--ink);font:inherit;font-size:.95rem;font-weight:700;
+    padding:12px 20px;border-radius:999px;cursor:pointer;min-height:48px;
+    width:100%;max-width:440px;margin-top:10px;
+  }
+  .remote-overlay{
+    position:fixed;inset:0;z-index:120;background:rgba(8,9,12,.62);
+    display:flex;align-items:center;justify-content:center;padding:14px;
+  }
+  .remote-panel{
+    background:var(--surface);color:var(--ink);border:1px solid var(--line);
+    border-radius:18px;box-shadow:var(--shadow);padding:20px 18px;
+    width:100%;max-width:430px;max-height:92dvh;overflow-y:auto;text-align:center;
+  }
+  .remote-panel h2{font-size:1.15rem;margin:0 0 6px}
+  .remote-panel p{font-size:.9rem;color:var(--ink-soft)}
+  .remote-code{
+    font-family:ui-monospace,Consolas,monospace;font-size:2rem;font-weight:900;
+    letter-spacing:.28em;background:var(--surface-2);border:1px dashed var(--accent);
+    border-radius:12px;padding:10px 6px 10px 14px;margin:12px 0;color:var(--ink);
+    user-select:all;
+  }
+  #remoteQr{display:flex;justify-content:center;margin:10px 0}
+  #remoteQr canvas,#remoteQr img{width:180px;height:180px;background:#fff;padding:8px;border-radius:10px}
+  .remote-status{font-size:.88rem;font-weight:700;margin:10px 0}
+  .remote-status .ok{color:var(--good)}
+  .remote-panel ol{text-align:left;font-size:.88rem;padding-left:20px;color:var(--ink-soft)}
+  .remote-panel ol li{margin-bottom:5px}
+  /* Vista de control (este teléfono ES el mando) */
+  .pad-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .pad-head h2{font-size:1.1rem;margin:0}
+  .pad-connect{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:16px;margin-bottom:14px;box-shadow:var(--shadow);
+  }
+  .pad-connect label{font-weight:700;font-size:.92rem;display:block;margin-bottom:6px}
+  .pad-code-row{display:flex;gap:8px;flex-wrap:wrap}
+  .pad-code-input{
+    flex:1;min-width:150px;font:inherit;font-size:1.25rem;font-weight:900;letter-spacing:.22em;
+    text-transform:uppercase;padding:10px 12px;border-radius:10px;
+    border:2px solid var(--line);background:var(--surface);color:var(--ink);
+  }
+  .pad-status{font-size:.9rem;font-weight:700;margin-top:10px}
+  .pad-status .ok{color:var(--good)}
+  .pad-layout-toggle{display:flex;gap:8px;justify-content:center;margin:0 0 12px}
+  .pad-layout-toggle .btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent-dark)}
+  .pad-player-toggle{display:flex;gap:8px;justify-content:center;margin:0 0 6px}
+  .pad-player-toggle .btn{flex:1;max-width:200px;min-height:48px;font-size:.95rem}
+  .pad-player-toggle .btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent-dark)}
+  .pad-player-state{text-align:center;font-size:.88rem;color:var(--ink-soft);margin:0 0 12px}
+  .pad-player-state strong{color:var(--ink)}
+  .pad-stage{
+    background:var(--deck);border:1px solid var(--deck-line);border-radius:22px;
+    box-shadow:var(--shadow);padding:16px 12px 20px;color:var(--deck-ink);
+  }
+  .pad-stage .sh-row{margin-bottom:14px}
+  .pad-mid{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .pad-mid .dpad{grid-template-columns:repeat(3,clamp(52px,15vw,64px));grid-template-rows:repeat(3,clamp(52px,15vw,64px))}
+  .pad-mid .abxy{grid-template-columns:repeat(3,58px);grid-template-rows:repeat(3,58px)}
+  .pad-mid .abxy button{width:58px;height:58px;font-size:1.15rem}
+  .pad-stage .meta-row{margin-top:16px}
+  .pad-stage .abxy button.active,.pad-stage .dpad button.active{filter:brightness(1.5)}
+  /* Diseño NES: se esconden X, Y, L y R y el rombo se lee como B / A */
+  .pad-stage.nes-mode .snes-only{display:none !important}
+  .pad-stage.nes-mode .abxy{grid-template-columns:repeat(2,58px);grid-template-rows:58px}
+  .pad-stage.nes-mode .ca{grid-area:1/2}
+  .pad-stage.nes-mode .cb{grid-area:1/1}
+  @media (orientation: landscape) and (max-height:620px){
+    .pad-stage{padding:10px 14px 12px}
+    .pad-stage .sh-row{margin-bottom:6px}
+    .pad-stage .meta-row{margin-top:8px}
+    .pad-mid .dpad{grid-template-columns:repeat(3,56px);grid-template-rows:repeat(3,56px)}
+  }
+</style>
+</head>
+<body>
+<main>
+
+  <!-- ================= CARA PRINCIPAL =================
+       Presentación + Cargar ROM + todas las indicaciones.
+       Sin pantalla y sin botones de juego. -->
+  <div id="homeView">
+    <h1 class="site-title">Ibarra <span class="accent">en 8 bits</span></h1>
+    <p class="lead">Tu emulador de <strong>Super Nintendo (SNES)</strong> en el navegador, en computadora o celular. Carga tu propio archivo <strong>.sfc</strong> o <strong>.smc</strong> y a jugar — en vertical, en horizontal o con control externo, sin instalar nada. Ahora el juego se dibuja <strong>directo en nuestra propia pantalla</strong>, como en el de NES: sin reproductor de otro emulador encima, con nuestros botones estilo control de SNES y pantalla completa de verdad. Como en el de NES: la primera vez se conecta a la red para descargar el núcleo, y después tu navegador ya lo tiene a la mano.</p>
+
+    <section class="home-hero" id="homeHero" aria-label="Cargar juego">
+      <div class="cart" aria-hidden="true"></div>
+      <h2>Carga tu juego de SNES y a jugar</h2>
+      <p class="sub">Elige un archivo <strong>.sfc</strong> / <strong>.smc</strong> de tu dispositivo. La primera vez el arranque tarda unos segundos porque el núcleo (Snes9x) se descarga de internet; las siguientes veces entra mucho más rápido.</p>
+      <button class="btn-xl" id="loadRomBtn" type="button">📂 Cargar ROM (.sfc / .smc)</button>
+      <button class="btn-resume" id="resumeBtn" type="button" hidden>▶ Volver al juego</button>
+      <button class="btn-remote" id="openPadBtn" type="button">🎮 Usar este teléfono como control remoto</button>
+      <p class="drag-note">También puedes arrastrar el archivo hasta aquí.</p>
+      <p class="drag-note" style="margin-top:8px"><strong>Control remoto con dos teléfonos (estilo PepoMote):</strong> este teléfono queda como pantalla del juego y el otro como control, o al revés. Dentro del juego, el botón <strong>📱 Control remoto</strong> muestra un código y un QR; en el otro teléfono abre Ibarra en 8 bits, toca <strong>«Usar este teléfono como control remoto»</strong>, escribe el código ¡y a jugar! Ya conectado, <strong>oculta el panel del código en el teléfono del juego para ver la partida: el control sigue conectado</strong>; la sesión solo termina si tocas «Terminar la sesión de control» en ese panel. <strong>Para jugar de a dos:</strong> pueden entrar dos teléfonos con el mismo código; cada control elige «Jugador 1» o «Jugador 2» antes de conectarse (y puede cambiarlo después desde su propio control). Tú juegas como Jugador 1 con los botones de la pantalla y el otro teléfono como Jugador 2 — así solo hacen falta dos teléfonos en total. Sirve igual para el emulador de <strong>NES</strong> y para este de <strong>SNES</strong>: el control trae los dos diseños. Los dos teléfonos necesitan internet para encontrarse la primera vez; el juego en sí no se transmite, solo los botones que presionas.</p>
+
+      <div class="gp-status" aria-live="polite">
+        <span class="gp-dot"></span>
+        <span>🎮 <strong class="gp-name">Sin control externo</strong>&nbsp;— conecta uno por Bluetooth o USB y pulsa cualquier botón.</span>
+      </div>
+
+      <div class="banner" id="homeError" role="alert">
+        ⚠ No se pudo cargar la librería del emulador (Nostalgist). Revisa tu conexión a internet y recarga la página: sin ese archivo el emulador no puede arrancar.
+      </div>
+      <div class="banner" id="homeAlert" role="alert"></div>
+    </section>
+
+    <div class="cols">
+      <section class="card" aria-label="Teclas y control">
+        <h2>⌨ Teclado y 🎮 control externo</h2>
+        <dl class="keys">
+          <dt><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd></dt><dd>Cruceta</dd>
+          <dt><kbd>X</kbd></dt><dd>Botón A (rojo)</dd>
+          <dt><kbd>Z</kbd></dt><dd>Botón B (amarillo)</dd>
+          <dt><kbd>S</kbd></dt><dd>Botón X (azul)</dd>
+          <dt><kbd>A</kbd></dt><dd>Botón Y (verde)</dd>
+          <dt><kbd>Q</kbd> / <kbd>W</kbd></dt><dd>Gatillos L / R</dd>
+          <dt><kbd>Enter</kbd> / <kbd>Shift</kbd></dt><dd>Start / Select</dd>
+        </dl>
+        <div class="snes-btns" aria-hidden="true">
+          <span><i class="bx">X</i> X azul</span>
+          <span><i class="ba">A</i> A rojo</span>
+          <span><i class="by">Y</i> Y verde</span>
+          <span><i class="bb">B</i> B amarillo</span>
+          <span>L · R</span>
+        </div>
+        <p style="margin:12px 0 0;color:var(--ink-soft)">Control de Xbox, PlayStation o genérico, por Bluetooth o USB: cruceta y stick izquierdo mueven; el botón de abajo es <strong>B</strong>, el de la derecha <strong>A</strong>, el de la izquierda <strong>Y</strong> y el de arriba <strong>X</strong> — como en el control de SNES —; los gatillos de arriba son <strong>L</strong> y <strong>R</strong>, y Select/Start son los botones de menú (⧉/☰, Create/Options). Al conectarlo verás «Control conectado» aquí arriba.</p>
+        <p style="margin:12px 0 0;color:var(--ink-soft)">En el celular juegas con <strong>nuestro propio control estilo SNES</strong> que aparece al cargar el juego: cruceta negra a la izquierda, el rombo de botones de colores a la derecha (<strong>X</strong> azul arriba, <strong>Y</strong> verde a la izquierda, <strong>A</strong> rojo a la derecha, <strong>B</strong> amarillo abajo), gatillos <strong>L</strong> y <strong>R</strong> arriba y SELECT/START al centro. Gira el celular cuando quieras: en vertical los controles quedan abajo y en horizontal a los lados, sin recargar.</p>
+        <p style="margin:12px 0 0;color:var(--ink-soft)"><strong>Arrastra el dedo entre botones:</strong> no hace falta levantar el dedo para cambiar de botón. Deslízalo por la cruceta (con diagonales en las esquinas) o entre los botones de colores, y el botón que pisas es el que cuenta. Con dos dedos a la vez también funciona: deja un botón presionado (correr) y brinca con el otro.</p>
+        <p style="margin:12px 0 0;color:var(--ink-soft)"><strong>¿Desaparecen los controles virtuales si conectas un control o usas el teclado?</strong> No, y es a propósito: controles táctiles, teclado y control externo funcionan <strong>al mismo tiempo</strong>. Si quieres la pantalla limpia, ocúltalos tú con el botón <strong>🕹 Controles</strong> y vuelve a mostrarlos con el mismo botón.</p>
+        <p style="margin:12px 0 0;color:var(--ink-soft)"><strong>FPS en pantalla:</strong> el botón <strong>FPS</strong> de la barra enciende y apaga el contador de cuadros por segundo en la esquina superior izquierda, dentro de la pantalla. Viene apagado.</p>
+        <p style="margin:12px 0 0;color:var(--ink-soft)"><strong>Menú ☰ en horizontal:</strong> al girar el celular, los botones de la barra se guardan en el menú <strong>☰</strong> de la esquina superior izquierda, en el espacio vacío arriba de la cruceta, para que no se ensimen sobre el juego. En vertical la barra sigue debajo de la pantalla.</p>
+        <p style="margin:12px 0 0;color:var(--ink-soft)"><strong>Guardar y cargar partida (estilo MAME):</strong> el botón <strong>💾 Guardar partida</strong>: déjalo presionado y pulsa <strong>A para guardar</strong> o <strong>B para cargar</strong>, o tócalo y enseguida pulsa A o B — con los botones táctiles, el teclado o el control externo. Si lo tocas solo, guarda al momento. También tienes el botón <strong>Cargar partida</strong> en la misma barra. <strong>La partida se guarda en tu navegador, por juego:</strong> puedes cerrar el navegador, volver a abrir Ibarra en 8 bits, cargar el mismo juego y tu partida seguirá ahí — cada juego guarda la suya. Solo se borra si borras la caché o los datos del navegador.</p>
+        <p style="margin:12px 0 0;color:var(--ink-soft)">El botón <strong>⏏ Quitar ROM</strong> saca el juego actual y te regresa a esta cara principal, listo para cargar otro, sin refrescar la página. Tu partida guardada de ese juego no se borra.</p>
+      </section>
+      <section class="card" aria-label="Consejos">
+        <h2>Para que corra fluido</h2>
+        <ul>
+          <li><strong>La primera vez necesita internet:</strong> la librería (Nostalgist) y el núcleo Snes9x se descargan de la red al cargar tu primer juego. Sin conexión esa primera vez, el juego no puede arrancar; después el navegador los guarda en caché.</li>
+          <li>Ahora el juego corre <strong>directo en nuestra pantalla</strong>, sin la capa de otro reproductor encima: eso quita el menú y los botones ajenos que se ensimaban, y debe sentirse más ligero que antes.</li>
+          <li>El SNES pide más que el NES: si un juego pesado se siente lento, cierra otras pestañas y apaga el ahorro de energía del celular mientras juegas.</li>
+          <li>El sonido arranca con tu primer toque o clic (el navegador lo exige). Si entras y no suena, toca la pantalla una vez.</li>
+          <li>Para verlo grande, usa el botón <strong>⛶ Pantalla completa</strong>: el juego llena la pantalla con fondo negro y los controles flotan semitransparentes encima, como en el de NES.</li>
+          <li>Formatos que acepta: <strong>.sfc</strong>, <strong>.smc</strong>, <strong>.fig</strong> y <strong>.swc</strong> — los archivos de Super Nintendo de toda la vida.</li>
+        </ul>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top:14px" aria-label="Sobre los juegos">
+      <h2>Sobre los juegos (ROMs)</h2>
+      <p style="margin:0">Aquí no viene ningún juego incluido. El emulador reproduce los archivos de SNES que tú ya tengas en tu celular o computadora — por ejemplo, copias de respaldo de tus cartuchos. Solo elige el archivo con el botón de arriba y empieza a jugar.</p>
+    </section>
+
+    <footer>Ibarra en 8 bits · Hecho con HTML, CSS y JavaScript · Núcleo de emulación: Snes9x vía Nostalgist.js (se descarga de la red la primera vez)</footer>
+  </div>
+
+  <!-- ================= VISTA DE JUEGO =================
+       Pantalla propia + nuestro control estilo SNES. -->
+  <div id="gameView" hidden>
+    <div class="playfield" id="playfield">
+
+      <section class="console" aria-label="Consola">
+        <div class="screen-wrap" id="screenWrap">
+          <canvas id="screen" width="256" height="224" aria-label="Pantalla del juego"></canvas>
+          <div class="fps-overlay" id="fpsOverlay" hidden>— FPS</div>
+          <div class="emu-loading" id="emuLoading" hidden>
+            <div class="spin" aria-hidden="true"></div>
+            <div><strong>Conectando a la red…</strong><br>Descargando el núcleo de SNES (Snes9x) y arrancando tu juego.<br>La primera vez puede tardar unos segundos.</div>
+          </div>
+        </div>
+
+        <div class="banner" id="libError" role="alert">
+          ⚠ No se pudo descargar la librería o el núcleo del emulador. Revisa tu conexión a internet y vuelve a intentarlo: la primera vez esos archivos tienen que llegar de la red.
+        </div>
+      </section>
+
+      <!-- Botón ☰ del menú hamburguesa: solo se ve en horizontal. -->
+      <button class="menu-btn" id="menuBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Abrir menú de opciones" title="Menú">☰</button>
+
+      <!-- Barra de botones: justo DEBAJO de la pantalla en vertical;
+           en horizontal se guarda dentro del menú ☰. -->
+      <div class="toolbar">
+        <button class="btn" id="homeBtn" type="button">🏠 Inicio</button>
+        <button class="btn primary" id="changeRomBtn" type="button">📂 Cambiar ROM</button>
+        <button class="btn" id="saveBtn" type="button" disabled aria-pressed="false">💾 Guardar partida</button>
+        <button class="btn" id="loadBtn" type="button" disabled>📂 Cargar partida</button>
+        <button class="btn" id="pauseBtn" type="button" disabled>⏸ Pausa</button>
+        <button class="btn" id="restartBtn" type="button" disabled>↻ Reiniciar</button>
+        <button class="btn" id="resetBtn" type="button" disabled>⏏ Quitar ROM</button>
+        <button class="btn" id="soundBtn" type="button" aria-pressed="true">🔊 Sonido: sí</button>
+        <button class="btn" id="fpsBtn" type="button" aria-pressed="false">FPS</button>
+        <button class="btn" id="ctlBtn" type="button" aria-pressed="true">🕹 Controles: sí</button>
+        <button class="btn" id="fsBtn" type="button">⛶ Pantalla completa</button>
+        <button class="btn" id="remoteBtn" type="button">📱 Control remoto</button>
+      </div>
+
+      <div class="brand-plate" aria-hidden="true">Ibarra en 8 bits<span class="plate-sub">· SNES ·</span></div>
+
+      <div class="brand-plate-land" aria-hidden="true">Ibarra en 8 bits<span class="plate-sub">· SNES ·</span></div>
+
+      <!-- Gatillos L / R sobre los hombros del control. -->
+      <div class="ctl ctl-shoulders">
+        <div class="sh-row">
+          <button class="sh-btn" type="button" data-btn="l" aria-label="Gatillo L">L</button>
+          <button class="sh-btn" type="button" data-btn="r" aria-label="Gatillo R">R</button>
+        </div>
+      </div>
+
+      <!-- Cruceta negra de una pieza, como la del control de la foto. -->
+      <div class="ctl ctl-left">
+        <div class="dpad" role="group" aria-label="Cruceta direccional">
+          <button class="up" type="button" data-btn="up" aria-label="Arriba">▲</button>
+          <button class="left" type="button" data-btn="left" aria-label="Izquierda">◀</button>
+          <span class="mid"></span>
+          <button class="right" type="button" data-btn="right" aria-label="Derecha">▶</button>
+          <button class="down" type="button" data-btn="down" aria-label="Abajo">▼</button>
+        </div>
+      </div>
+
+      <!-- Rombo de colores: X azul arriba, Y verde izquierda,
+           A rojo derecha, B amarillo abajo. -->
+      <div class="ctl ctl-right">
+        <div class="abxy" role="group" aria-label="Botones X, Y, A, B">
+          <div class="cell cx"><button class="bx" type="button" data-btn="x" aria-label="Botón X">X</button></div>
+          <div class="cell cy"><button class="by" type="button" data-btn="y" aria-label="Botón Y">Y</button></div>
+          <div class="cell ca"><button class="ba" type="button" data-btn="a" aria-label="Botón A">A</button></div>
+          <div class="cell cb"><button class="bb" type="button" data-btn="b" aria-label="Botón B">B</button></div>
+        </div>
+      </div>
+
+      <!-- SELECT / START: píldoras al centro. -->
+      <div class="ctl ctl-meta">
+        <div class="meta-row">
+          <button type="button" data-btn="select">SELECT</button>
+          <button type="button" data-btn="start">START</button>
+        </div>
+        <p class="pad-note">Gira el celular para jugar en horizontal: los controles se van a los lados solos, sin recargar, y los botones de la barra se guardan en el menú <strong>☰</strong> de arriba a la izquierda. Teclado, botones táctiles y control externo funcionan al mismo tiempo — los controles virtuales <strong>no</strong> desaparecen solos; si quieres la pantalla limpia, ocúltalos con <strong>🕹 Controles</strong>. Puedes arrastrar el dedo de un botón a otro sin levantarlo: el botón que pisas es el que cuenta. Con 🏠 Inicio vuelves a la cara principal, y con ⛶ entras o sales de pantalla completa cuando quieras.</p>
+      </div>
+
+    </div>
+
+    <div class="game-info">
+      <div class="statusbar" aria-live="polite">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">Listo. Esperando un juego…</span>
+        <span class="spacer"></span>
+        <span id="fpsText">— FPS</span>
+        <span id="romText">Sin ROM</span>
+      </div>
+
+      <div class="gp-status" aria-live="polite">
+        <span class="gp-dot"></span>
+        <span>🎮 <strong class="gp-name">Sin control externo</strong>&nbsp;— conecta uno por Bluetooth o USB y pulsa cualquier botón.</span>
+      </div>
+
+      <p class="state-hint" id="stateHint">💾 <strong>Guardar partida (estilo MAME):</strong> mantén presionado <strong>Guardar</strong> y pulsa <strong>A para guardar</strong> · <strong>B para cargar</strong>, o tócalo y enseguida pulsa A o B. Si lo tocas solo, guarda al momento. La partida queda guardada <strong>en tu navegador, una por cada juego</strong>: sobrevive a cerrar y reabrir el navegador, y solo se borra si borras la caché o los datos del navegador.</p>
+    </div>
+  </div>
+
+  <!-- ============ PANEL: ESTE TELÉFONO ES LA PANTALLA (ANFITRIÓN) ============ -->
+  <div class="remote-overlay" id="remoteOverlay" hidden>
+    <div class="remote-panel" role="dialog" aria-modal="true" aria-labelledby="remoteTitle">
+      <h2 id="remoteTitle">📱 Control remoto</h2>
+      <p>Este teléfono es la <strong>pantalla del juego</strong>. En el otro teléfono:</p>
+      <ol>
+        <li>Abre <strong>Ibarra en 8 bits</strong> (el de NES o el de SNES, el que estés jugando aquí).</li>
+        <li>Toca <strong>«🎮 Usar este teléfono como control remoto»</strong>.</li>
+        <li>Escribe este código (o escanea el QR con el botón de escanear de ese teléfono):</li>
+      </ol>
+      <div class="remote-code" id="remoteCode">······</div>
+      <div id="remoteQr" aria-hidden="true"></div>
+      <p class="remote-status" id="remoteStatus">Creando el código…</p>
+      <div id="remoteSlots" style="text-align:left;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:.9rem">
+        <div>🎮 <strong>Jugador 1:</strong> <span id="remoteSlot1">libre — este teléfono juega con sus botones de pantalla</span></div>
+        <div style="margin-top:6px">🎮 <strong>Jugador 2:</strong> <span id="remoteSlot2">libre — puede entrar un segundo teléfono con el mismo código</span></div>
+      </div>
+      <p>Pueden conectarse <strong>dos teléfonos a la vez con el mismo código</strong>: cada control elige si es <strong>Jugador 1</strong> o <strong>Jugador 2</strong> y mueve a su propio personaje. Si un teléfono pide un jugador que ya está ocupado, se le avisa que está ocupado y no quita el lugar al que ya está jugando. Tú también puedes jugar como Jugador 1 con los botones de esta pantalla al mismo tiempo que el Jugador 2 juega desde su teléfono. <strong>Ojo:</strong> si un control remoto entra como Jugador 1, comparte personaje con los botones de esta pantalla; para jugar de a dos, que el teléfono entre como Jugador 2.</p>
+      <p><strong>Para ver el juego, oculta este panel:</strong> la conexión sigue viva con el panel oculto y el control del otro teléfono sigue funcionando. El código solo deja de servir si tocas «Terminar la sesión de control» aquí abajo.</p>
+      <button class="btn primary" id="remoteCloseBtn" type="button" style="width:100%">Ocultar panel — el control sigue conectado</button>
+      <button class="btn" id="remoteEndBtn" type="button" style="width:100%;margin-top:8px">Terminar la sesión de control</button>
+    </div>
+  </div>
+
+  <!-- ============ VISTA: ESTE TELÉFONO ES EL CONTROL ============ -->
+  <div id="padView" hidden>
+    <div class="pad-head">
+      <h2>🎮 Control remoto Ibarra</h2>
+      <button class="btn" id="padExitBtn" type="button">← Volver al emulador</button>
+    </div>
+
+    <section class="pad-connect" aria-label="Conectar con el teléfono del juego">
+      <label for="padCodeInput">Código del teléfono que tiene el juego</label>
+      <div class="pad-code-row">
+        <input class="pad-code-input" id="padCodeInput" type="text" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC123" />
+        <button class="btn primary" id="padConnectBtn" type="button">Conectar</button>
+        <button class="btn" id="padScanBtn" type="button">📷 Escanear QR</button>
+      </div>
+      <video id="padScanVideo" playsinline muted hidden style="width:100%;max-width:340px;border-radius:10px;margin-top:10px"></video>
+      <p class="pad-status" id="padStatus">Sin conectar. Pide el código en el teléfono del juego: botón <strong>📱 Control remoto</strong>.</p>
+      <p style="font-size:.85rem;color:var(--ink-soft);margin:8px 0 0">Funciona con el emulador de <strong>NES</strong> y con el de <strong>SNES</strong> de Ibarra en 8 bits: el código es el mismo sistema en los dos. Elige abajo el diseño que corresponda al juego.</p>
+    </section>
+
+    <div class="pad-player-toggle" role="group" aria-label="Qué jugador es este control">
+      <button class="btn" id="padPlayer1Btn" type="button" aria-pressed="true">🎮 Jugador 1</button>
+      <button class="btn" id="padPlayer2Btn" type="button" aria-pressed="false">🎮 Jugador 2</button>
+    </div>
+    <p class="pad-player-state" id="padPlayerState">Este control es: <strong>Jugador 1</strong>. Elige tu jugador antes de conectarte; si ya estás conectado, al cambiarlo te mueves a ese lugar (si está libre).</p>
+
+    <div class="pad-layout-toggle" role="group" aria-label="Diseño del control">
+      <button class="btn" id="padLayoutSnes" type="button" aria-pressed="true">Control SNES</button>
+      <button class="btn" id="padLayoutNes" type="button" aria-pressed="false">Control NES</button>
+    </div>
+
+    <div class="pad-stage" id="padStage">
+      <div class="sh-row">
+        <button class="sh-btn snes-only" type="button" data-rbtn="l" aria-label="Gatillo L">L</button>
+        <button class="sh-btn snes-only" type="button" data-rbtn="r" aria-label="Gatillo R">R</button>
+      </div>
+      <div class="pad-mid">
+        <div class="dpad" role="group" aria-label="Cruceta direccional del control remoto">
+          <button class="up" type="button" data-rbtn="up" aria-label="Arriba">▲</button>
+          <button class="left" type="button" data-rbtn="left" aria-label="Izquierda">◀</button>
+          <span class="mid"></span>
+          <button class="right" type="button" data-rbtn="right" aria-label="Derecha">▶</button>
+          <button class="down" type="button" data-rbtn="down" aria-label="Abajo">▼</button>
+        </div>
+        <div class="abxy" role="group" aria-label="Botones del control remoto">
+          <div class="cell cx snes-only"><button class="bx" type="button" data-rbtn="x" aria-label="Botón X">X</button></div>
+          <div class="cell cy snes-only"><button class="by" type="button" data-rbtn="y" aria-label="Botón Y">Y</button></div>
+          <div class="cell ca"><button class="ba" type="button" data-rbtn="a" aria-label="Botón A">A</button></div>
+          <div class="cell cb"><button class="bb" type="button" data-rbtn="b" aria-label="Botón B">B</button></div>
+        </div>
+      </div>
+      <div class="meta-row">
+        <button type="button" data-rbtn="select">SELECT</button>
+        <button type="button" data-rbtn="start">START</button>
+      </div>
+    </div>
+    <p class="pad-note">Pon este teléfono en horizontal para agarrarlo como control. Puedes arrastrar el dedo entre botones sin levantarlo, igual que en el emulador. Si se corta la conexión, toca <strong>Conectar</strong> otra vez con el mismo código mientras la sesión siga activa en el otro teléfono (el panel puede estar oculto; solo deja de servir si allá se toca «Terminar la sesión de control»).</p>
+  </div>
+
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============ Librería Nostalgist (CDN, global UMD) ============
+     Se carga con un <script> clásico en el <head>. Dibujamos el juego
+     DIRECTO en nuestro canvas con Nostalgist.launch({ element, core:
+     'snes9x', rom: File }): el núcleo Snes9x (snes9x_libretro.js/.wasm)
+     baja de jsDelivr la primera vez y el navegador lo guarda en caché.
+     No hay reproductor ni interfaz ajena encima: todo es nuestro. */
+  var NostalgistLib = window.Nostalgist || null;
+
+  var $ = function(id){ return document.getElementById(id); };
+  var homeView = $("homeView"), gameView = $("gameView"), homeHero = $("homeHero");
+  var screenWrap = $("screenWrap"), playfield = $("playfield");
+  var canvas = $("screen");
+  var statusText = $("statusText"), statusDot = $("statusDot"),
+      fpsText = $("fpsText"), romText = $("romText"),
+      fpsOverlay = $("fpsOverlay"), emuLoading = $("emuLoading");
+  var gpNames = document.querySelectorAll(".gp-name");
+  var gpBoxes = document.querySelectorAll(".gp-status");
+
+  var resetBtn = $("resetBtn"), restartBtn = $("restartBtn"),
+      pauseBtn = $("pauseBtn"),
+      soundBtn = $("soundBtn"), fsBtn = $("fsBtn"),
+      fpsBtn = $("fpsBtn"), ctlBtn = $("ctlBtn"),
+      saveBtn = $("saveBtn"), loadBtn = $("loadBtn"),
+      loadRomBtn = $("loadRomBtn"), changeRomBtn = $("changeRomBtn"),
+      homeBtn = $("homeBtn"), resumeBtn = $("resumeBtn");
+
+  if (!NostalgistLib) {
+    $("libError").classList.add("show");
+    $("homeError").classList.add("show");
+    statusText.textContent = "Error: la librería Nostalgist no cargó.";
+  }
+
+  /* ============ Estado general ============ */
+  var nostalgist = null;
+  var romLoaded = false;
+  var launching = false;
+  var paused = false;
+  var soundOn = true;
+  var currentRomKey = null;   /* nombre exacto del archivo ROM */
+
+  function setStatus(msg, mode){
+    statusText.textContent = msg;
+    statusDot.className = "dot" + (mode ? " " + mode : "");
+  }
+  function showLoading(on){
+    emuLoading.hidden = !on;
+  }
+  function alertMsg(msg){
+    [$("libError"), $("homeAlert")].forEach(function(b){
+      b.textContent = "⚠ " + msg;
+      b.classList.add("show");
+    });
+    setTimeout(function(){
+      $("libError").classList.remove("show");
+      $("homeAlert").classList.remove("show");
+      if (!NostalgistLib) { $("libError").classList.add("show"); $("homeError").classList.add("show"); }
+    }, 6000);
+  }
+
+  /* El núcleo RetroArch se adueña del canvas (WebGL). Al cambiar de
+     juego se pone un canvas nuevo y limpio en su lugar, para que no
+     quede el cuadro anterior congelado ni estilos residuales. */
+  function resetCanvas(){
+    var fresh = document.createElement("canvas");
+    fresh.id = "screen";
+    fresh.width = 256; fresh.height = 224;
+    fresh.setAttribute("aria-label", "Pantalla del juego");
+    if (canvas && canvas.parentNode) canvas.parentNode.replaceChild(fresh, canvas);
+    canvas = fresh;
+  }
+
+  /* ============ Partidas persistentes por juego (IndexedDB) ============
+     El estado (Blob) de Nostalgist se guarda en IndexedDB, con el
+     nombre del archivo ROM como clave: la partida de cada juego queda
+     aparte y sobrevive a cerrar y reabrir el navegador. Solo se borra
+     si se borran la caché / los datos del navegador. Si IndexedDB no
+     está disponible (modo privado, etc.), se cae al guardado en
+     memoria, solo por la sesión. */
+  var DB_NAME = "ibarra-snes-saves", DB_STORE = "states";
+  var savedBlob = null;       /* estado en memoria (respaldo y caché) */
+  function idbOpen(){
+    return new Promise(function(resolve, reject){
+      if (!window.indexedDB) { reject(new Error("IndexedDB no disponible")); return; }
+      var rq = window.indexedDB.open(DB_NAME, 1);
+      rq.onupgradeneeded = function(){
+        try { rq.result.createObjectStore(DB_STORE); } catch(e){}
+      };
+      rq.onsuccess = function(){ resolve(rq.result); };
+      rq.onerror = function(){ reject(rq.error); };
+    });
+  }
+  function idbPut(key, blob){
+    return idbOpen().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(DB_STORE, "readwrite");
+        tx.objectStore(DB_STORE).put(blob, key);
+        tx.oncomplete = function(){ try { db.close(); } catch(e){} resolve(true); };
+        tx.onerror = function(){ reject(tx.error); };
+      });
+    });
+  }
+  function idbGet(key){
+    return idbOpen().then(function(db){
+      return new Promise(function(resolve, reject){
+        var rq = db.transaction(DB_STORE, "readonly").objectStore(DB_STORE).get(key);
+        rq.onsuccess = function(){ try { db.close(); } catch(e){} resolve(rq.result || null); };
+        rq.onerror = function(){ reject(rq.error); };
+      });
+    });
+  }
+
+  /* ============ Entrada unificada: táctil + teclado + control externo ====
+     Los tres alimentan los mismos conjuntos y el resultado se manda al
+     núcleo con pressDown/pressUp de Nostalgist (nombres SNES:
+     up/down/left/right, a/b/x/y, l/r, select/start). Todo funciona al
+     mismo tiempo; nada se oculta ni se apaga solo. */
+  var BTN_NAMES = ["up","down","left","right","a","b","x","y","l","r","select","start"];
+  var inputSets = { touch:{}, kb:{}, pad:{}, remote:{}, remote2:{} };
+  var effective = {};
+  var effective2 = {};   /* estado efectivo del puerto 2 (solo control remoto P2) */
+  BTN_NAMES.forEach(function(n){ effective2[n] = false; });
+  var padButtonsByName = {};
+  BTN_NAMES.forEach(function(n){ effective[n] = false; padButtonsByName[n] = []; });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-btn]"), function(el){
+    var n = el.getAttribute("data-btn");
+    if (padButtonsByName[n]) padButtonsByName[n].push(el);
+  });
+
+  function syncInput(name){
+    var any = !!(inputSets.touch[name] || inputSets.kb[name] || inputSets.pad[name] || inputSets.remote[name]);
+    padButtonsByName[name].forEach(function(el){ el.classList.toggle("active", any); });
+    if (any === effective[name]) return;
+    effective[name] = any;
+    if (!nostalgist || !romLoaded) return;
+    try {
+      if (any) nostalgist.pressDown(name); else nostalgist.pressUp(name);
+    } catch(e){}
+  }
+  /* Puerto 2 de snes9x: SOLO lo alimenta el segundo teléfono remoto.
+     Nostalgist acepta el jugador en forma de objeto
+     ({button, player}); con el nombre suelto siempre va al jugador 1.
+     Las teclas internas del jugador 2 están definidas en el
+     retroarchConfig del arranque, distintas de las del jugador 1,
+     para que Nostalgist las traduzca a ese puerto. */
+  function syncInput2(name){
+    var any = !!inputSets.remote2[name];
+    if (any === effective2[name]) return;
+    effective2[name] = any;
+    if (!nostalgist || !romLoaded) return;
+    try {
+      if (any) nostalgist.pressDown({ button: name, player: 2 });
+      else nostalgist.pressUp({ button: name, player: 2 });
+    } catch(e){
+      try {
+        if (any) nostalgist.pressDown(name, 2); else nostalgist.pressUp(name, 2);
+      } catch(e2){}
+    }
+  }
+  function setInput(source, name, down){
+    if (!inputSets[source] || BTN_NAMES.indexOf(name) === -1) return;
+    if (source === "remote2") {
+      if (!!inputSets.remote2[name] === down) return;
+      inputSets.remote2[name] = down;
+      syncInput2(name);
+      return;
+    }
+    /* Entrada tragada: fue el A/B que disparó guardar/cargar estilo
+       MAME; no debe llegar al juego ni al soltar. */
+    if (swallowSets[source][name]) {
+      if (!down) swallowSets[source][name] = false;
+      return;
+    }
+    if (down && stateArmed && (name === "a" || name === "b")) {
+      swallowSets[source][name] = true;
+      stateActionDone = true;
+      if (name === "a") doSaveState(); else doLoadState();
+      disarmStateMode(false);
+      return;
+    }
+    if (!!inputSets[source][name] === down) return;
+    inputSets[source][name] = down;
+    syncInput(name);
+  }
+  function clearSource(source){
+    if (source === "touch") pointerHolds = {};
+    if (source === "remote2") {
+      BTN_NAMES.forEach(function(n){ if (inputSets.remote2[n]) { inputSets.remote2[n] = false; syncInput2(n); } });
+      return;
+    }
+    BTN_NAMES.forEach(function(n){ if (inputSets[source][n]) { inputSets[source][n] = false; syncInput(n); } });
+  }
+  function clearAllSources(){
+    clearSource("touch"); clearSource("kb"); clearSource("pad"); clearSource("remote"); clearSource("remote2");
+  }
+
+  /* ===== Guardar / cargar estilo MAME: Guardar + A guarda, Guardar + B carga ===== */
+  var stateArmed = false, stateActionDone = false, stateArmTimer = null, suppressSaveClick = false;
+  var swallowSets = { touch:{}, kb:{}, pad:{}, remote:{}, remote2:{} };
+  function armStateMode(){
+    if (!romLoaded || !nostalgist) return;
+    stateArmed = true; stateActionDone = false;
+    if (saveBtn) saveBtn.setAttribute("aria-pressed", "true");
+    setStatus("Guardar/Cargar: pulsa A para guardar · B para cargar", "paused");
+    if (stateArmTimer) clearTimeout(stateArmTimer);
+    stateArmTimer = setTimeout(function(){ disarmStateMode(true); }, 8000);
+  }
+  function disarmStateMode(restoreStatus){
+    stateArmed = false;
+    if (saveBtn) saveBtn.setAttribute("aria-pressed", "false");
+    if (stateArmTimer) { clearTimeout(stateArmTimer); stateArmTimer = null; }
+    if (restoreStatus && romLoaded) setStatus("Jugando: " + romText.textContent, "on");
+  }
+  function doSaveState(){
+    if (!romLoaded || !nostalgist) return Promise.resolve(false);
+    return nostalgist.saveState().then(function(res){
+      var blob = (res && res.state) ? res.state : (res instanceof Blob ? res : null);
+      if (!blob) throw new Error("Estado vacío");
+      savedBlob = blob;
+      if (!currentRomKey) {
+        setStatus("Partida guardada solo por esta sesión. Carga con B o con «Cargar partida».", "on");
+        refreshButtons();
+        return true;
+      }
+      return idbPut(currentRomKey, blob).then(function(){
+        setStatus("Partida guardada en este navegador para este juego: queda aunque cierres el navegador. Carga con B o con «Cargar partida».", "on");
+        refreshButtons();
+        return true;
+      }).catch(function(){
+        setStatus("Partida guardada solo por esta sesión (el navegador no dejó guardarla fija). Carga con B o con «Cargar partida».", "on");
+        refreshButtons();
+        return true;
+      });
+    }).catch(function(){
+      setStatus("No se pudo guardar la partida.", "");
+      return false;
+    });
+  }
+  function doLoadState(){
+    if (!romLoaded || !nostalgist) return Promise.resolve(false);
+    var fromMemory = savedBlob;
+    var getBlob = fromMemory ? Promise.resolve(fromMemory)
+      : (currentRomKey ? idbGet(currentRomKey).catch(function(){ return null; }) : Promise.resolve(null));
+    return getBlob.then(function(blob){
+      if (!blob) {
+        setStatus("Este juego todavía no tiene una partida guardada en este navegador.", "");
+        return false;
+      }
+      savedBlob = blob;
+      return nostalgist.loadState(blob).then(function(){
+        if (paused) {
+          try { nostalgist.resume(); } catch(e){}
+          paused = false;
+        }
+        setStatus("Partida cargada", "on");
+        refreshButtons();
+        return true;
+      });
+    }).catch(function(){
+      setStatus("No se pudo cargar la partida.", "");
+      return false;
+    });
+  }
+
+  /* ============ Control externo (Gamepad API) ============
+     Mapeo estándar pensado para SNES: el botón de abajo es B, el de la
+     derecha A, el de la izquierda Y y el de arriba X (como el rombo del
+     control de SNES); gatillos 4/5 = L/R; 8/9 = Select/Start; cruceta
+     12–15 y stick izquierdo mueven. Se revisa en el bucle rAF y se
+     alimenta a los mismos conjuntos que el tacto y el teclado. */
+  var gamepadIndex = null;
+  function shortPadName(id){
+    var name = String(id || "Control").replace(/\s*\(.*?\)\s*/g, " ").trim();
+    return name.length > 42 ? name.slice(0, 42) + "…" : name;
+  }
+  function setGamepadLabel(text, connected){
+    Array.prototype.forEach.call(gpNames, function(el){ el.textContent = text; });
+    Array.prototype.forEach.call(gpBoxes, function(el){ el.classList.toggle("connected", !!connected); });
+  }
+  function showGamepadConnected(gp){
+    gamepadIndex = gp.index;
+    setGamepadLabel("Control conectado: " + shortPadName(gp.id), true);
+  }
+  function showGamepadDisconnected(){
+    gamepadIndex = null;
+    clearSource("pad");
+    setGamepadLabel("Sin control externo", false);
+  }
+  window.addEventListener("gamepadconnected", function(e){ showGamepadConnected(e.gamepad); });
+  window.addEventListener("gamepaddisconnected", function(e){
+    if (gamepadIndex === null || e.gamepad.index === gamepadIndex) showGamepadDisconnected();
+  });
+  function gpPressed(gp, idx){
+    var b = gp.buttons && gp.buttons[idx];
+    return !!(b && (b.pressed || (typeof b.value === "number" && b.value > 0.5)));
+  }
+  function pollGamepad(){
+    if (!navigator.getGamepads) return;
+    var pads = navigator.getGamepads();
+    var gp = null;
+    if (gamepadIndex !== null && pads[gamepadIndex]) gp = pads[gamepadIndex];
+    if (!gp) {
+      for (var i = 0; i < pads.length; i++) { if (pads[i]) { gp = pads[i]; break; } }
+      if (gp && gamepadIndex === null) showGamepadConnected(gp);
+    }
+    if (!gp) return;
+    var ax = gp.axes || [];
+    var x = ax[0] || 0, y = ax[1] || 0, DEAD = 0.5;
+    setInput("pad", "b",      gpPressed(gp,0));
+    setInput("pad", "a",      gpPressed(gp,1));
+    setInput("pad", "y",      gpPressed(gp,2));
+    setInput("pad", "x",      gpPressed(gp,3));
+    setInput("pad", "l",      gpPressed(gp,4));
+    setInput("pad", "r",      gpPressed(gp,5));
+    setInput("pad", "select", gpPressed(gp,8));
+    setInput("pad", "start",  gpPressed(gp,9));
+    setInput("pad", "up",     gpPressed(gp,12) || y < -DEAD);
+    setInput("pad", "down",   gpPressed(gp,13) || y >  DEAD);
+    setInput("pad", "left",   gpPressed(gp,14) || x < -DEAD);
+    setInput("pad", "right",  gpPressed(gp,15) || x >  DEAD);
+  }
+
+  /* ============ Bucle rAF: control externo + contador FPS ============
+     El núcleo corre por su cuenta (Nostalgist/RetroArch); este bucle
+     solo revisa el control externo y cuenta los cuadros mostrados para
+     el contador FPS (getStatus() de Nostalgist da el estado, no los
+     fps, así que se cuentan los rAF mientras se juega). */
+  var framesDone = 0, fpsClock = 0, lastStamp = 0;
+  function loop(timestamp){
+    requestAnimationFrame(loop);
+    pollGamepad();
+    if (!lastStamp) { lastStamp = timestamp; return; }
+    var delta = timestamp - lastStamp;
+    lastStamp = timestamp;
+    if (romLoaded && !paused) framesDone++;
+    fpsClock += delta;
+    if (fpsClock >= 500) {
+      var fps = Math.round(framesDone * 1000 / fpsClock);
+      fpsText.textContent = (romLoaded && !paused) ? (fps + " FPS") : "— FPS";
+      if (fpsOverlay) fpsOverlay.textContent = fpsText.textContent;
+      framesDone = 0; fpsClock = 0;
+    }
+  }
+  requestAnimationFrame(loop);
+
+  /* ============ Botones / UI ============ */
+  function refreshButtons(){
+    var has = romLoaded && !!nostalgist;
+    saveBtn.disabled = !has;
+    loadBtn.disabled = !(has && savedBlob);
+    pauseBtn.disabled = !has;
+    restartBtn.disabled = !has;
+    resetBtn.disabled = !(romLoaded || nostalgist || launching);
+    pauseBtn.textContent = paused ? "▶ Seguir" : "⏸ Pausa";
+    resumeBtn.hidden = !romLoaded;
+    if (romLoaded) resumeBtn.textContent = "▶ Volver al juego: " + romText.textContent;
+  }
+
+  /* ============ Cara principal ⇄ vista de juego ============ */
+  function showHome(){
+    exitImmersive();
+    closeMenu();
+    if (romLoaded && nostalgist && !paused) {
+      try { nostalgist.pause(); } catch(e){}
+      paused = true;
+      setStatus("En pausa", "paused");
+    }
+    gameView.hidden = true;
+    homeView.hidden = false;
+    refreshButtons();
+    window.scrollTo(0, 0);
+  }
+  function showGame(){
+    homeView.hidden = true;
+    gameView.hidden = false;
+    if (romLoaded && nostalgist && paused) {
+      try { nostalgist.resume(); } catch(e){}
+      paused = false;
+      setStatus("Jugando: " + romText.textContent, "on");
+    }
+    refreshButtons();
+    window.scrollTo(0, 0);
+    scheduleFitCanvas();
+  }
+  resumeBtn.addEventListener("click", function(){ if (romLoaded) showGame(); });
+  homeBtn.addEventListener("click", function(){ showHome(); });
+
+  /* ============ Quitar ROM: salida limpia, sin recargar la página ==== */
+  function ejectRom(){
+    if (launching) return;
+    if (!romLoaded && !nostalgist) return;
+    disarmStateMode(false);
+    closeMenu();
+    exitImmersive();
+    clearAllSources();
+    swallowSets = { touch:{}, kb:{}, pad:{}, remote:{}, remote2:{} };
+    if (nostalgist) {
+      try { nostalgist.exit({ removeCanvas:false }); } catch(e){}
+      nostalgist = null;
+    }
+    romLoaded = false;
+    paused = false;
+    savedBlob = null;
+    currentRomKey = null;
+    lastFitW = 0; lastFitH = 0;
+    showLoading(false);
+    resetCanvas();
+    romText.textContent = "Sin ROM";
+    fpsText.textContent = "— FPS";
+    if (fpsOverlay) fpsOverlay.textContent = "— FPS";
+    setStatus("Listo. Esperando un juego…", "");
+    gameView.hidden = true;
+    homeView.hidden = false;
+    refreshButtons();
+    window.scrollTo(0, 0);
+    var ha = $("homeAlert");
+    if (ha) {
+      ha.textContent = "⏏ ROM quitada. Ya puedes cargar otro juego cuando quieras.";
+      ha.classList.add("show");
+      setTimeout(function(){ ha.classList.remove("show"); }, 4000);
+    }
+  }
+  resetBtn.addEventListener("click", function(){ ejectRom(); });
+
+  /* ============ Pantalla completa inmersiva ============ */
+  /* ¿La página vive dentro de un anfitrión incrustado? Así pasa en
+     la tarjeta de Muse. La corrección anterior solo miraba si la
+     página iba en un iframe, pero en la app la página es el
+     documento PRINCIPAL de una vista web (el WebView de Android de
+     la app), no un iframe: la detección daba «no incrustado», se
+     seguía llamando a la pantalla completa «de verdad» (Fullscreen
+     API) y esa es la que TRABÓ el juego — la vista la concede a
+     medias o la deja esperando, el núcleo deja de avanzar y la
+     imagen queda congelada en el último cuadro, como reportó
+     Daniel ya con el arreglo puesto. Por eso la detección ahora
+     junta tres señales de anfitrión incrustado: iframe, la marca
+     «; wv)» que el WebView de Android lleva en su user-agent, y
+     document.fullscreenEnabled en falso. En un anfitrión incrustado
+     NO se llama a esa API ni por el botón ni al cargar el ROM: se
+     usa directo el modo simulado (.fs-fake), que es puro CSS —
+     llena todo el espacio de la tarjeta, con el mismo fondo negro
+     y los controles flotantes, sin tocar nada del sistema que
+     pueda colgar al emulador. En ventana suelta (el archivo
+     descargado abierto en Chrome, cuyo user-agent no trae «wv»)
+     se sigue usando la pantalla completa real, que ahí funciona
+     bien, con el modo simulado de respaldo. */
+  var embeddedHost = (function(){
+    try { if (window.self !== window.top) return true; } catch(e){ return true; }
+    try {
+      var ua = navigator.userAgent || "";
+      if (/;\s*wv\)/.test(ua)) return true;   /* WebView de Android */
+    } catch(e){}
+    if (typeof document.fullscreenEnabled === "boolean" && !document.fullscreenEnabled) return true;
+    return false;
+  })();
+  var fsRequestPending = false, fsWatchdog = null;
+  function clearFsWatchdog(){
+    if (fsWatchdog) { clearTimeout(fsWatchdog); fsWatchdog = null; }
+  }
+  /* Si al entrar o salir de pantalla completa el navegador o el
+     propio RetroArch dejaron el juego en pausa, se reanuda — solo si
+     Daniel no lo pausó él: el resume() de Nostalgist no hace nada
+     cuando el juego no está registrado como pausado, así que
+     llamarlo de más es seguro. */
+  function nudgeResume(){
+    if (!nostalgist || !romLoaded || paused) return;
+    try { nostalgist.resume(); } catch(e){}
+  }
+  function enterFakeFullscreen(){
+    playfield.classList.add("fs-fake");
+    document.body.classList.add("fs-locked");
+    fsBtn.textContent = "⛶ Salir";
+    scheduleFitCanvas();
+    setTimeout(nudgeResume, 400);
+  }
+  function exitFakeFullscreen(){
+    playfield.classList.remove("fs-fake");
+    document.body.classList.remove("fs-locked");
+    fsBtn.textContent = "⛶ Pantalla completa";
+    scheduleFitCanvas();
+  }
+  function enterImmersive(){
+    if (playfield.classList.contains("fs-fake") || document.fullscreenElement) return;
+    if (embeddedHost) { enterFakeFullscreen(); return; }
+    var req = playfield.requestFullscreen || playfield.webkitRequestFullscreen;
+    if (req) {
+      /* Vigilante: si la petición ni se concede ni se rechaza (hay
+         vistas web donde la promesa se queda esperando para siempre
+         y el juego se traba), a los 800 ms se cae al modo simulado. */
+      fsRequestPending = true;
+      clearFsWatchdog();
+      fsWatchdog = setTimeout(function(){
+        fsWatchdog = null;
+        fsRequestPending = false;
+        if (!document.fullscreenElement && !playfield.classList.contains("fs-fake")) enterFakeFullscreen();
+      }, 800);
+      try {
+        var p = req.call(playfield);
+        if (p && p.catch) p.catch(function(){ fsRequestPending = false; clearFsWatchdog(); enterFakeFullscreen(); });
+      } catch(e){ fsRequestPending = false; clearFsWatchdog(); enterFakeFullscreen(); }
+    } else {
+      enterFakeFullscreen();
+    }
+  }
+  function exitImmersive(){
+    fsRequestPending = false;
+    clearFsWatchdog();
+    if (playfield.classList.contains("fs-fake")) exitFakeFullscreen();
+    if (document.fullscreenElement && document.exitFullscreen) {
+      try { document.exitFullscreen(); } catch(e){}
+    }
+  }
+  /* Intento automático al cargar un ROM: solo pantalla completa real
+     y solo en ventana suelta (en un anfitrión incrustado — la
+     tarjeta — ni se intenta: ver la nota de arriba); si el navegador lo bloquea
+     porque el arranque fue asíncrono, no pasa nada — queda el
+     botón ⛶. */
+  function attemptAutoFullscreen(){
+    if (embeddedHost) return;
+    try {
+      if (document.fullscreenElement || playfield.classList.contains("fs-fake")) return;
+      var req = playfield.requestFullscreen || playfield.webkitRequestFullscreen;
+      if (req) {
+        var p = req.call(playfield);
+        if (p && p.catch) p.catch(function(){});
+      }
+    } catch(e){}
+  }
+  fsBtn.addEventListener("click", function(){
+    if (playfield.classList.contains("fs-fake")) { exitFakeFullscreen(); return; }
+    if (document.fullscreenElement) { document.exitFullscreen(); return; }
+    enterImmersive();
+  });
+  document.addEventListener("fullscreenchange", function(){
+    fsRequestPending = false;
+    clearFsWatchdog();
+    fsBtn.textContent = document.fullscreenElement ? "⛶ Salir" : "⛶ Pantalla completa";
+    scheduleFitCanvas();
+    setTimeout(nudgeResume, 400);
+  });
+  document.addEventListener("webkitfullscreenchange", function(){
+    fsRequestPending = false;
+    clearFsWatchdog();
+    fsBtn.textContent = document.fullscreenElement ? "⛶ Salir" : "⛶ Pantalla completa";
+    scheduleFitCanvas();
+    setTimeout(nudgeResume, 400);
+  });
+  /* Solo se responde al error si venía de un toque al botón ⛶ (el
+     intento automático al cargar el ROM puede fallar sin gesto y eso
+     es normal: no debe lanzar el modo simulado de golpe). */
+  document.addEventListener("fullscreenerror", function(){
+    if (!fsRequestPending) return;
+    fsRequestPending = false;
+    clearFsWatchdog();
+    if (!document.fullscreenElement && !playfield.classList.contains("fs-fake")) enterFakeFullscreen();
+  });
+  document.addEventListener("visibilitychange", function(){
+    if (!document.hidden) setTimeout(nudgeResume, 300);
+  });
+
+  /* ============ El dibujo interno sigue al tamaño de la pantalla ====
+     REGLA DE ORO (aprendida del recorte «zoom» que se veía en el
+     celular): RetroArch vigila el lienzo con un ResizeObserver y
+     trabaja en PÍXELES DE DISPOSITIVO (el tamaño CSS del marco ×
+     devicePixelRatio, ≈ ×2.34 en un celular típico): su zona de
+     dibujo es ese tamaño grande. Si el búfer interno del lienzo se
+     queda en píxeles CSS, el juego se dibuja agrandado y solo se ve
+     su esquina inferior izquierda — el fallo que reportó Daniel.
+     Por eso el búfer se sincroniza SIEMPRE en píxeles de
+     dispositivo, aquí y al arrancar (opción size de Nostalgist, que
+     alimenta el mismo setCanvasSize del arranque): tamaño CSS del
+     marco × devicePixelRatio, exacto y sin topes que desincronicen.
+     El tamaño VISIBLE ya lo llena siempre el CSS (.screen-wrap
+     canvas con !important). */
+  function wrapDeviceSize(){
+    var dpr = window.devicePixelRatio || 1;
+    var w = screenWrap.clientWidth, h = screenWrap.clientHeight;
+    if (!w || !h) return null;
+    return { width: Math.max(2, Math.round(w * dpr)), height: Math.max(2, Math.round(h * dpr)) };
+  }
+  var lastFitW = 0, lastFitH = 0, fitTimer = null;
+  function fitCanvasBuffer(){
+    fitTimer = null;
+    if (!nostalgist || !romLoaded) return;
+    var size = wrapDeviceSize();
+    if (!size) return;
+    if (Math.abs(size.width - lastFitW) < 2 && Math.abs(size.height - lastFitH) < 2) return;
+    lastFitW = size.width; lastFitH = size.height;
+    try { nostalgist.resize(size); } catch(e){}
+  }
+  function scheduleFitCanvas(){
+    if (fitTimer) clearTimeout(fitTimer);
+    fitTimer = setTimeout(fitCanvasBuffer, 180);
+  }
+  window.addEventListener("resize", scheduleFitCanvas);
+  window.addEventListener("orientationchange", scheduleFitCanvas);
+  document.addEventListener("keydown", function(e){
+    if (e.code === "Escape" && playfield.classList.contains("fs-fake")) exitFakeFullscreen();
+  });
+
+  /* ============ Menú hamburguesa (solo se ve en horizontal) ============ */
+  var menuBtn = $("menuBtn");
+  var toolbarEl = playfield.querySelector(".toolbar");
+  function closeMenu(){
+    playfield.classList.remove("menu-open");
+    if (menuBtn) menuBtn.setAttribute("aria-expanded", "false");
+  }
+  if (menuBtn && toolbarEl) {
+    menuBtn.addEventListener("click", function(){
+      var open = playfield.classList.toggle("menu-open");
+      menuBtn.setAttribute("aria-expanded", String(open));
+    });
+    toolbarEl.addEventListener("click", function(e){
+      if (e.target.closest && e.target.closest(".btn")) closeMenu();
+    });
+    document.addEventListener("pointerdown", function(e){
+      if (!playfield.classList.contains("menu-open")) return;
+      if (menuBtn.contains(e.target) || toolbarEl.contains(e.target)) return;
+      closeMenu();
+    });
+    document.addEventListener("keydown", function(e){
+      if (e.code === "Escape") closeMenu();
+    });
+  }
+
+  /* ============ Arranque de un ROM con Nostalgist ============ */
+  function startRom(file){
+    if (launching) return;
+    if (!NostalgistLib || typeof NostalgistLib.launch !== "function") {
+      alertMsg("La librería del emulador (Nostalgist) no cargó. Revisa tu conexión y recarga la página.");
+      return;
+    }
+    launching = true;
+    /* Si ya había un juego, se sale de él limpio y se pone canvas
+       nuevo — sin recargar la página. */
+    if (nostalgist) {
+      try { nostalgist.exit({ removeCanvas:false }); } catch(e){}
+      nostalgist = null;
+    }
+    disarmStateMode(false);
+    clearAllSources();
+    swallowSets = { touch:{}, kb:{}, pad:{}, remote:{}, remote2:{} };
+    romLoaded = false;
+    paused = false;
+    savedBlob = null;
+    lastFitW = 0; lastFitH = 0;
+    currentRomKey = file.name;
+    romText.textContent = file.name;
+    showGame();
+    resetCanvas();
+    showLoading(true);
+    setStatus("Descargando el núcleo y arrancando: " + file.name, "paused");
+    refreshButtons();
+
+    var launchOpts = {
+        element: canvas,
+        core: "snes9x",
+        rom: file,
+        /* Nuestro propio manejo de entradas: RetroArch no escucha el
+           teclado por su cuenta (así no abre menús ni se duplica la
+           entrada); todo entra por pressDown/pressUp de Nostalgist. */
+        respondToGlobalEvents: false,
+        retroarchConfig: {
+          input_player1_a: "x",
+          input_player1_b: "z",
+          input_player1_y: "a",
+          input_player1_x: "s",
+          input_player1_l: "q",
+          input_player1_r: "w",
+          input_player1_start: "enter",
+          input_player1_select: "rshift",
+          input_player1_up: "up",
+          input_player1_down: "down",
+          input_player1_left: "left",
+          input_player1_right: "right",
+          /* Jugador 2 (segundo teléfono remoto): teclas internas
+             DISTINTAS de las del jugador 1. Nadie las teclea de
+             verdad: Nostalgist las sintetiza al recibir
+             pressDown/pressUp con player:2 y RetroArch las entrega
+             al puerto 2 de snes9x. Sin estas líneas, el jugador 2
+             no tendría ninguna tecla asignada y no se movería. */
+          input_player2_a: "k",
+          input_player2_b: "j",
+          input_player2_y: "u",
+          input_player2_x: "i",
+          input_player2_l: "o",
+          input_player2_r: "p",
+          input_player2_start: "v",
+          input_player2_select: "n",
+          input_player2_up: "t",
+          input_player2_down: "g",
+          input_player2_left: "f",
+          input_player2_right: "h",
+          audio_enable: "true",
+          /* Búfer de audio más amplio (128 ms): con la sincronía de
+             audio de RetroArch, un búfer corto que se atasca en la
+             vista web de la app frena TODA la emulación (juego y
+             sonido lentos a la vez, como se veía en la tarjeta de
+             Muse). Con más colchón el audio no se corta y el juego
+             no se frena esperándolo; la imagen no se toca. */
+          audio_latency: "128",
+          /* Ritmo exacto del juego en pantallas de 90/120 Hz: el
+             contador de FPS de la página cuenta los cuadros de la
+             PANTALLA del celular (por eso marca 70–90), pero el SNES
+             corre a 60.0988 fps. Sin este ajuste, el bucle de
+             RetroArch se amarra a la cadencia de 90 Hz y el juego de
+             60 fps se siente lento y entrecortado justo cuando el
+             contador supera los 70. Con vrr_runloop_enable el núcleo
+             avanza a su ritmo exacto de contenido (el ajuste de
+             «Sync to Exact Content Framerate» de RetroArch) y la
+             imagen se presenta pareja, sin frenarse a la cadencia
+             de la pantalla. */
+          video_refresh_rate: "60.0988",
+          vrr_runloop_enable: "true",
+          pause_nonactive: "false"
+        }
+      };
+    /* Tamaño inicial del búfer en PÍXELES DE DISPOSITIVO (ver la
+       regla junto a wrapDeviceSize): si Nostalgist mide el lienzo
+       por su cuenta, lo mide en píxeles CSS y el arranque ya nace
+       con el búfer chico que produce el recorte agrandado. */
+    var devSize = wrapDeviceSize();
+    if (devSize) launchOpts.size = devSize;
+    var launchPromise;
+    try {
+      launchPromise = NostalgistLib.launch(launchOpts);
+    } catch (err) {
+      launching = false;
+      showLoading(false);
+      $("libError").classList.add("show");
+      setStatus("Error: no se pudo arrancar el juego.", "");
+      refreshButtons();
+      return;
+    }
+    Promise.resolve(launchPromise).then(function(inst){
+      nostalgist = inst;
+      romLoaded = true;
+      launching = false;
+      showLoading(false);
+      setStatus("Jugando: " + file.name, "on");
+      refreshButtons();
+      attemptAutoFullscreen();
+      scheduleFitCanvas();
+      /* ¿Este juego ya tiene partida guardada en el navegador? */
+      idbGet(file.name).then(function(blob){
+        if (blob && romLoaded && currentRomKey === file.name) {
+          savedBlob = blob;
+          refreshButtons();
+          setStatus("Jugando: " + file.name + " — este juego tiene una partida guardada: pulsa «Cargar partida» o Guardar + B.", "on");
+        }
+      }).catch(function(){});
+    }).catch(function(){
+      launching = false;
+      showLoading(false);
+      nostalgist = null;
+      romLoaded = false;
+      $("libError").classList.add("show");
+      setStatus("Error: el núcleo no se pudo descargar o el juego no arrancó.", "");
+      refreshButtons();
+    });
+  }
+
+  function readRomFile(file){
+    var ok = /\.(sfc|smc|fig|swc)$/i.test(file.name);
+    if (!ok) {
+      alertMsg("«" + file.name + "» no parece un juego de SNES. Busca un archivo .sfc o .smc.");
+      return;
+    }
+    startRom(file);
+  }
+
+  /* Selector de archivos creado al momento del clic. */
+  function openRomPicker(){
+    var picker = document.createElement("input");
+    picker.type = "file";
+    picker.accept = ".sfc,.smc,.fig,.swc,application/octet-stream";
+    picker.style.display = "none";
+    document.body.appendChild(picker);
+    picker.addEventListener("change", function(){
+      var file = picker.files && picker.files[0];
+      if (file) readRomFile(file);
+      if (picker.parentNode) picker.parentNode.removeChild(picker);
+    });
+    picker.click();
+  }
+  loadRomBtn.addEventListener("click", openRomPicker);
+  changeRomBtn.addEventListener("click", openRomPicker);
+
+  /* Arrastrar y soltar: en la cara principal y en la pantalla. */
+  function wireDrop(zone, cls){
+    ["dragenter","dragover"].forEach(function(ev){
+      zone.addEventListener(ev, function(e){ e.preventDefault(); if (cls) zone.classList.add(cls); else zone.style.outline = "3px dashed #3f4a8a"; });
+    });
+    ["dragleave","drop"].forEach(function(ev){
+      zone.addEventListener(ev, function(e){ e.preventDefault(); if (cls) zone.classList.remove(cls); else zone.style.outline = ""; });
+    });
+    zone.addEventListener("drop", function(e){
+      var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (file) readRomFile(file);
+    });
+  }
+  wireDrop(homeHero, "dragover");
+  wireDrop(screenWrap, null);
+
+  /* ============ Resto de la barra de herramientas ============ */
+  pauseBtn.addEventListener("click", function(){
+    if (!romLoaded || !nostalgist) return;
+    try {
+      if (paused) { nostalgist.resume(); paused = false; setStatus("Jugando: " + romText.textContent, "on"); }
+      else { nostalgist.pause(); paused = true; setStatus("En pausa", "paused"); }
+    } catch(e){}
+    refreshButtons();
+  });
+  restartBtn.addEventListener("click", function(){
+    if (!romLoaded || !nostalgist) return;
+    try {
+      if (typeof nostalgist.restart === "function") nostalgist.restart();
+      else if (typeof nostalgist.sendCommand === "function") nostalgist.sendCommand("RESET");
+    } catch(e){}
+    if (paused) paused = false;
+    setStatus("Jugando: " + romText.textContent, "on");
+    refreshButtons();
+  });
+  soundBtn.addEventListener("click", function(){
+    soundOn = !soundOn;
+    soundBtn.setAttribute("aria-pressed", String(soundOn));
+    soundBtn.textContent = soundOn ? "🔊 Sonido: sí" : "🔇 Sonido: no";
+    /* En RetroArch el comando MUTE es de ida y vuelta (activa y
+       desactiva el silencio), así que el mismo comando sirve para
+       apagar y para volver a encender el sonido. */
+    if (nostalgist && typeof nostalgist.sendCommand === "function") {
+      try { nostalgist.sendCommand("MUTE"); } catch(e){}
+    }
+  });
+  var fpsOn = false;
+  fpsBtn.addEventListener("click", function(){
+    fpsOn = !fpsOn;
+    fpsBtn.setAttribute("aria-pressed", String(fpsOn));
+    if (fpsOverlay) {
+      fpsOverlay.hidden = !fpsOn;
+      if (fpsOn) fpsOverlay.textContent = fpsText.textContent;
+    }
+  });
+  /* Controles virtuales: NUNCA se ocultan solos; este botón es la
+     forma manual de esconderlos y volver a mostrarlos. */
+  var ctlOn = true;
+  ctlBtn.addEventListener("click", function(){
+    ctlOn = !ctlOn;
+    playfield.classList.toggle("controls-hidden", !ctlOn);
+    ctlBtn.setAttribute("aria-pressed", String(ctlOn));
+    ctlBtn.textContent = ctlOn ? "🕹 Controles: sí" : "🕹 Controles: no";
+  });
+  /* Guardar partida estilo MAME (igual que en el de NES):
+     - Mantén presionado Guardar y pulsa A = guarda, B = carga.
+     - O toca Guardar y enseguida pulsa A o B.
+     - Si lo tocas solo, guarda al momento. */
+  var savePointerHandled = false;
+  saveBtn.addEventListener("pointerdown", function(){
+    if (saveBtn.disabled) return;
+    savePointerHandled = true;
+    stateActionDone = false;
+    armStateMode();
+  });
+  saveBtn.addEventListener("pointerup", function(){
+    if (stateActionDone) { suppressSaveClick = true; disarmStateMode(false); return; }
+    if (!stateArmed) return;
+    if (stateArmTimer) clearTimeout(stateArmTimer);
+    stateArmTimer = setTimeout(function(){
+      stateArmTimer = null;
+      if (stateArmed && !stateActionDone) { disarmStateMode(false); doSaveState(); }
+    }, 1400);
+  });
+  saveBtn.addEventListener("pointercancel", function(){
+    if (stateActionDone) { suppressSaveClick = true; disarmStateMode(false); }
+  });
+  saveBtn.addEventListener("click", function(){
+    if (!romLoaded || !nostalgist) return;
+    if (suppressSaveClick) { suppressSaveClick = false; savePointerHandled = false; return; }
+    if (savePointerHandled) { savePointerHandled = false; return; }
+    if (!stateArmed) armStateMode();
+  });
+  loadBtn.addEventListener("click", function(){
+    if (!romLoaded || !nostalgist) return;
+    doLoadState();
+  });
+  refreshButtons();
+
+  /* ============ Teclado ============
+     Flechas = cruceta · X = A · Z = B · S = X · A = Y · Q/W = L/R ·
+     Enter = Start · Shift = Select. Como respondToGlobalEvents va en
+     false, RetroArch no escucha estas teclas por su cuenta: entran
+     solo por aquí, vía pressDown/pressUp, sin menús ni duplicados. */
+  var KEYMAP = {
+    ArrowUp:"up", ArrowDown:"down", ArrowLeft:"left", ArrowRight:"right",
+    KeyX:"a", KeyZ:"b", KeyS:"x", KeyA:"y",
+    KeyQ:"l", KeyW:"r",
+    Enter:"start", ShiftLeft:"select", ShiftRight:"select"
+  };
+  var GAMEKEYS = { ArrowUp:1, ArrowDown:1, ArrowLeft:1, ArrowRight:1, Space:1 };
+  document.addEventListener("keydown", function(e){
+    if (gameView.hidden) return;
+    var name = KEYMAP[e.code];
+    if (!name) return;
+    if (GAMEKEYS[e.code]) e.preventDefault();
+    if (!e.repeat) setInput("kb", name, true);
+  });
+  document.addEventListener("keyup", function(e){
+    var name = KEYMAP[e.code];
+    if (!name) return;
+    if (GAMEKEYS[e.code]) e.preventDefault();
+    setInput("kb", name, false);
+  });
+  window.addEventListener("blur", function(){ clearSource("kb"); clearSource("touch"); });
+
+  /* ============ Botones táctiles / mouse: pointer events CON ARRASTRE ====
+     Cada dedo se sigue por su POSICIÓN: al arrastrar, se suelta el
+     botón que quedó atrás y se presiona el que se pisa ahora, sin
+     levantar el dedo. La cruceta se lee por zonas (tercios) sobre su
+     cuadrado — las esquinas valen como diagonal — y los demás botones
+     (rombo de colores, SELECT/START y gatillos L/R) con
+     elementFromPoint. Varios dedos a la vez: cada puntero se sigue por
+     separado y los botones se comparten por conteo. */
+  var dpadEl = document.querySelector(".dpad");
+  var pointerHolds = {};   /* pointerId -> [nombres que ese dedo pisa ahora] */
+
+  function applyPointerHolds(){
+    var counts = {};
+    Object.keys(pointerHolds).forEach(function(id){
+      pointerHolds[id].forEach(function(n){ counts[n] = (counts[n] || 0) + 1; });
+    });
+    BTN_NAMES.forEach(function(n){ setInput("touch", n, !!counts[n]); });
+  }
+  function setPointerHold(id, names){
+    var prev = pointerHolds[id] || [];
+    var same = prev.length === names.length && prev.every(function(n){ return names.indexOf(n) !== -1; });
+    if (same) return;
+    pointerHolds[id] = names;
+    applyPointerHolds();
+  }
+  function clearPointerHold(id){
+    if (!(id in pointerHolds)) return;
+    delete pointerHolds[id];
+    applyPointerHolds();
+  }
+  function dpadNamesAt(x, y){
+    var r = dpadEl.getBoundingClientRect();
+    if (!r.width || x < r.left || x > r.right || y < r.top || y > r.bottom) return [];
+    var fx = (x - r.left) / r.width, fy = (y - r.top) / r.height;
+    var names = [];
+    if (fy < 1/3) names.push("up"); else if (fy > 2/3) names.push("down");
+    if (fx < 1/3) names.push("left"); else if (fx > 2/3) names.push("right");
+    return names;
+  }
+  function btnNameAt(x, y){
+    var t = document.elementFromPoint(x, y);
+    var b = (t && t.closest) ? t.closest("[data-btn]") : null;
+    if (!b || dpadEl.contains(b)) return null;
+    return b.getAttribute("data-btn");
+  }
+  function wireSlide(el, namesAt){
+    el.addEventListener("pointerdown", function(e){
+      e.preventDefault();
+      if (el.setPointerCapture && e.pointerId !== undefined) {
+        try { el.setPointerCapture(e.pointerId); } catch(err){}
+      }
+      setPointerHold(e.pointerId, namesAt(e.clientX, e.clientY));
+    });
+    el.addEventListener("pointermove", function(e){
+      if (e.pointerId in pointerHolds) setPointerHold(e.pointerId, namesAt(e.clientX, e.clientY));
+    });
+    function release(e){
+      if (e) e.preventDefault();
+      clearPointerHold(e.pointerId);
+    }
+    el.addEventListener("pointerup", release);
+    el.addEventListener("pointercancel", release);
+    el.addEventListener("lostpointercapture", function(e){ clearPointerHold(e.pointerId); });
+    el.addEventListener("contextmenu", function(e){ e.preventDefault(); });
+  }
+  wireSlide(dpadEl, dpadNamesAt);
+  Array.prototype.forEach.call(document.querySelectorAll(".abxy [data-btn], .meta-row [data-btn], .sh-row [data-btn]"), function(el){
+    wireSlide(el, function(x, y){
+      var n = btnNameAt(x, y);
+      return n ? [n] : [];
+    });
+  });
+
+  /* ============ CONTROL REMOTO CON OTRO TELÉFONO (estilo PepoMote) ====
+     Dos modos dentro de esta misma página, conectados con WebRTC
+     (PeerJS, intermediario público gratuito solo para PRESENTAR a los
+     dos teléfonos; después los botones viajan directo de teléfono a
+     teléfono, sin pasar por ningún servidor y sin cuentas):
+     · ANFITRIÓN (este teléfono es la pantalla): el botón «📱 Control
+       remoto» crea un código de 6 letras/números y su QR. Todo lo que
+       el otro teléfono presione entra aquí como una fuente más
+       («remote») en el mismo sistema de entradas que el tacto, el
+       teclado y el control externo — así funciona con el juego tal
+       cual, sin tocar el núcleo. La sesión vive APARTE del panel:
+       ocultar el panel (botón o toque fuera) solo lo esconde y el
+       control sigue conectado; reabrir el panel muestra el mismo
+       código sin reiniciar nada. La sesión solo muere con el botón
+       «Terminar la sesión de control» (stopHost).
+     · CONTROL (este teléfono es el mando): la vista #padView, con
+       diseño SNES completo y diseño NES (sin X/Y/L/R). El mismo
+       código sirve en el emulador de NES y en el de SNES de Ibarra en
+       8 bits, porque los dos usan el mismo prefijo de sala.
+     El QR lleva SOLO el texto «IBARRA8:CODIGO» (no un enlace): se
+     escanea desde el propio botón «📷 Escanear QR» de la vista de
+     control cuando el navegador trae BarcodeDetector. */
+  var REMOTE_PREFIX = "ibarra8-";
+  var CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  function makeRemoteCode(){
+    var s = "";
+    for (var i = 0; i < 6; i++) s += CODE_CHARS.charAt(Math.floor(Math.random() * CODE_CHARS.length));
+    return s;
+  }
+  function peerLibReady(){ return typeof window.Peer === "function"; }
+
+  /* ---------- Anfitrión ---------- */
+  var remoteOverlay = $("remoteOverlay"), remoteCodeEl = $("remoteCode"),
+      remoteStatusEl = $("remoteStatus"), remoteQrEl = $("remoteQr");
+  var hostPeer = null, hostCode = null;
+  /* Dos lugares, uno por jugador: cada conexión guarda el suyo en
+     conn._slot (1 o 2, o null si pidió un lugar ocupado). El lugar 1
+     alimenta la fuente «remote» (puerto 1, compartido con los botones
+     de esta pantalla) y el lugar 2 la fuente «remote2» (puerto 2). */
+  var hostSlots = { 1: null, 2: null };
+  var remoteBtn = $("remoteBtn"), remoteBtnLabel = remoteBtn.textContent;
+  function hostAnyConn(){ return !!(hostSlots[1] || hostSlots[2]); }
+  function refreshRemoteBtn(){
+    /* El botón de la barra avisa qué lugares siguen vivos con el panel
+       oculto: así Daniel sabe quién sigue conectado mientras juega. */
+    if (!hostPeer) { remoteBtn.textContent = remoteBtnLabel; return; }
+    var p1 = hostSlots[1] ? "P1 ✅" : "P1 —";
+    var p2 = hostSlots[2] ? "P2 ✅" : "P2 —";
+    remoteBtn.textContent = (hostAnyConn() ? "📱 Remoto " : "📱 Remoto: esperando ") + p1 + " · " + p2;
+  }
+  function refreshRemoteSlots(){
+    var s1 = $("remoteSlot1"), s2 = $("remoteSlot2");
+    if (s1) s1.textContent = hostSlots[1] ? "conectado ✅ (teléfono remoto)" : "libre — este teléfono juega con sus botones de pantalla";
+    if (s2) s2.textContent = hostSlots[2] ? "conectado ✅ (teléfono remoto)" : "libre — puede entrar un segundo teléfono con el mismo código";
+    refreshRemoteBtn();
+  }
+  function remoteStatus(msg, ok){
+    remoteStatusEl.innerHTML = ok ? '<span class="ok">' + msg + "</span>" : msg;
+  }
+  function drawRemoteQr(code){
+    remoteQrEl.innerHTML = "";
+    try {
+      var qr = qrcode(0, "M");
+      qr.addData("IBARRA8:" + code);
+      qr.make();
+      remoteQrEl.innerHTML = qr.createSvgTag({ cellSize: 5, margin: 8, scalable: true });
+      var svg = remoteQrEl.querySelector("svg");
+      if (svg) { svg.style.width = "180px"; svg.style.height = "180px"; svg.style.background = "#fff"; svg.style.padding = "6px"; svg.style.borderRadius = "10px"; }
+    } catch(e){ remoteQrEl.textContent = ""; }
+  }
+  function slotSource(slot){ return slot === 2 ? "remote2" : "remote"; }
+  function freeSlot(conn){
+    var slot = conn && conn._slot;
+    if (!slot) return;
+    if (hostSlots[slot] === conn) hostSlots[slot] = null;
+    conn._slot = null;
+    clearSource(slotSource(slot));
+  }
+  function stopHost(){
+    [1, 2].forEach(function(n){
+      if (hostSlots[n]) { try { hostSlots[n].close(); } catch(e){} hostSlots[n] = null; }
+    });
+    try { if (hostPeer) hostPeer.destroy(); } catch(e){}
+    hostPeer = null; hostCode = null;
+    clearSource("remote");
+    clearSource("remote2");
+    refreshRemoteSlots();
+  }
+  function startHost(){
+    stopHost();
+    if (!peerLibReady()) {
+      remoteCodeEl.textContent = "······";
+      remoteStatus("No se pudo cargar el servicio de conexión (PeerJS). Revisa tu internet y vuelve a abrir este panel.");
+      return;
+    }
+    hostCode = makeRemoteCode();
+    remoteCodeEl.textContent = hostCode;
+    drawRemoteQr(hostCode);
+    remoteStatus("Esperando a que se conecten los teléfonos con este código… Cada control elige si es Jugador 1 o Jugador 2.");
+    try { hostPeer = new Peer(REMOTE_PREFIX + hostCode.toLowerCase()); }
+    catch(e){ remoteStatus("No se pudo crear el código. Revisa tu internet e inténtalo otra vez."); return; }
+    refreshRemoteSlots();
+    hostPeer.on("connection", function(conn){
+      conn._slot = null;
+      conn.on("open", function(){
+        /* Todavía sin lugar: el lugar llega con el «hello» del control
+           (su selector de Jugador 1 / Jugador 2). Los controles
+           viejos, que no mandan hello, quedan como Jugador 1. */
+        conn._helloTimer = setTimeout(function(){
+          if (conn._slot === null && !conn._helloSeen) assignSlot(conn, 1);
+        }, 2500);
+        refreshRemoteSlots();
+      });
+      conn.on("data", function(data){
+        if (!data || typeof data !== "object") return;
+        if (data.t === "hello") {
+          conn._helloSeen = true;
+          if (conn._helloTimer) { clearTimeout(conn._helloTimer); conn._helloTimer = null; }
+          assignSlot(conn, data.player === 2 ? 2 : 1);
+        } else if (data.t === "btn" && BTN_NAMES.indexOf(data.b) !== -1) {
+          /* Solo cuentan los botones del lugar asignado a ESTA
+             conexión: un control sin lugar (pidió un jugador
+             ocupado) no mueve nada. */
+          if (conn._slot === 1) setInput("remote", data.b, !!data.down);
+          else if (conn._slot === 2) setInput("remote2", data.b, !!data.down);
+        } else if (data.t === "releaseAll") {
+          if (conn._slot) clearSource(slotSource(conn._slot));
+        }
+      });
+      conn.on("close", function(){
+        if (conn._helloTimer) clearTimeout(conn._helloTimer);
+        var wasSlot = conn._slot;
+        freeSlot(conn);
+        refreshRemoteSlots();
+        if (wasSlot) remoteStatus("El control del Jugador " + wasSlot + " se desconectó; su lugar quedó libre. Puede volver a conectarse con el mismo código mientras la sesión siga activa; no hace falta que este panel esté abierto.");
+        if (romLoaded) setStatus("Un control remoto se desconectó — jugando: " + romText.textContent, "on");
+      });
+      conn.on("error", function(){ if (conn._slot) clearSource(slotSource(conn._slot)); });
+    });
+    hostPeer.on("error", function(err){
+      if (err && err.type === "unavailable-id") { startHost(); return; }
+      remoteStatus("Hubo un problema con la conexión (" + (err && err.type ? err.type : "red") + "). Toca «Terminar la sesión de control» y vuelve a abrir este panel para empezar de nuevo.");
+    });
+    hostPeer.on("disconnected", function(){
+      try { if (hostPeer && !hostPeer.destroyed) hostPeer.reconnect(); } catch(e){}
+    });
+  }
+  function assignSlot(conn, player){
+    /* Si este control ya tenía lugar, lo suelta primero: cambiar de
+       jugador desde el propio control es «moverse», no duplicarse. */
+    if (conn._slot && conn._slot !== player) freeSlot(conn);
+    if (conn._slot === player) {
+      try { conn.send({ t: "assigned", player: player }); } catch(e){}
+      refreshRemoteSlots();
+      return;
+    }
+    var holder = hostSlots[player];
+    if (holder && holder !== conn) {
+      /* Lugar ocupado: NO se roba. Este control queda sin lugar y
+         sus botones no mueven nada hasta que elija el otro jugador. */
+      conn._slot = null;
+      try { conn.send({ t: "taken", player: player }); } catch(e){}
+      remoteStatus("Un teléfono pidió ser Jugador " + player + ", pero ese lugar ya está ocupado: sigue jugando el que ya estaba. El teléfono nuevo tiene que elegir el otro jugador en su control.");
+      refreshRemoteSlots();
+      return;
+    }
+    hostSlots[player] = conn;
+    conn._slot = player;
+    try { conn.send({ t: "assigned", player: player }); } catch(e){}
+    remoteStatus("✅ Control conectado como Jugador " + player + ". Ya pueden jugar desde el otro teléfono. Puedes ocultar este panel: la conexión sigue viva.", true);
+    setStatus("Control remoto conectado (Jugador " + player + ") — jugando: " + romText.textContent, "on");
+    refreshRemoteSlots();
+  }
+  /* Abrir el panel NO reinicia la sesión: si ya hay una viva, se
+     muestra el mismo código y el mismo estado, sin tocar la conexión.
+     (Antes cada apertura generaba un código nuevo y cortaba el
+     control que ya estuviera conectado.) */
+  $("remoteBtn").addEventListener("click", function(){
+    remoteOverlay.hidden = false;
+    if (hostPeer && !hostPeer.destroyed) {
+      refreshRemoteSlots();
+      if (hostAnyConn()) remoteStatus("✅ Hay controles conectados (mira arriba quién es Jugador 1 y quién Jugador 2). Puedes ocultar este panel: la conexión sigue viva.", true);
+    } else {
+      startHost();
+    }
+  });
+  /* Ocultar el panel (botón o toque fuera) SOLO lo esconde: la sesión
+     y el control conectado siguen vivos mientras se juega. Antes
+     «Cerrar» destruía la conexión y el otro teléfono quedaba
+     desconectado en cuanto se quitaba el QR de la pantalla. */
+  $("remoteCloseBtn").addEventListener("click", function(){
+    remoteOverlay.hidden = true;
+  });
+  $("remoteEndBtn").addEventListener("click", function(){
+    remoteOverlay.hidden = true;
+    stopHost();
+    if (romLoaded) setStatus("Sesión de control remoto terminada — jugando: " + romText.textContent, "on");
+    else setStatus("Sesión de control remoto terminada.", "");
+  });
+  remoteOverlay.addEventListener("pointerdown", function(e){
+    if (e.target === remoteOverlay) { remoteOverlay.hidden = true; }
+  });
+
+  /* ---------- Este teléfono como control ---------- */
+  var padView = $("padView"), padStatusEl = $("padStatus"),
+      padCodeInput = $("padCodeInput"), padStage = $("padStage");
+  var padPeer = null, padConn = null, padConnected = false;
+  /* Jugador elegido en ESTE control (1 o 2) y lugar que el teléfono
+     del juego confirmó («assigned»). Sin confirmación —porque el
+     lugar está ocupado— los botones de este control no se mandan:
+     no mueve el personaje de nadie. */
+  var padPlayer = 1, padAssignedPlayer = null;
+  function padStatus(msg, ok){
+    padStatusEl.innerHTML = ok ? '<span class="ok">' + msg + "</span>" : msg;
+  }
+  function showPad(){
+    exitImmersive();
+    homeView.hidden = true;
+    gameView.hidden = true;
+    padView.hidden = false;
+    window.scrollTo(0, 0);
+  }
+  function hidePad(){
+    padView.hidden = true;
+    homeView.hidden = false;
+    stopPadScan();
+    window.scrollTo(0, 0);
+  }
+  $("openPadBtn").addEventListener("click", showPad);
+  $("padExitBtn").addEventListener("click", function(){
+    disconnectPad();
+    hidePad();
+  });
+  function disconnectPad(){
+    sendPadReleaseAll();
+    try { if (padConn) padConn.close(); } catch(e){}
+    try { if (padPeer) padPeer.destroy(); } catch(e){}
+    padConn = null; padPeer = null; padConnected = false;
+    padAssignedPlayer = null;
+    refreshPadPlayerUI();
+  }
+  function sendPadHello(){
+    if (padConn && padConnected) {
+      try { padConn.send({ t: "hello", player: padPlayer }); } catch(e){}
+    }
+  }
+  function sendPadBtn(name, down){
+    /* Sin lugar asignado no se manda nada: si el jugador elegido
+       está ocupado, este control no debe mover al que ya juega. */
+    if (padConn && padConnected && padAssignedPlayer !== null) {
+      try { padConn.send({ t: "btn", b: name, down: !!down }); } catch(e){}
+    }
+  }
+  function sendPadReleaseAll(){
+    if (padConn && padConnected) {
+      try { padConn.send({ t: "releaseAll" }); } catch(e){}
+    }
+  }
+  function connectPad(){
+    var code = (padCodeInput.value || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (code.length !== 6) { padStatus("Escribe el código de 6 letras/números que se ve en el teléfono del juego."); return; }
+    padCodeInput.value = code;
+    if (!peerLibReady()) { padStatus("No se pudo cargar el servicio de conexión (PeerJS). Revisa tu internet y recarga la página."); return; }
+    disconnectPad();
+    padStatus("Conectando con el teléfono del juego…");
+    var connOpened = false;
+    try { padPeer = new Peer(); } catch(e){ padStatus("No se pudo iniciar la conexión. Revisa tu internet."); return; }
+    var failTimer = setTimeout(function(){
+      if (!connOpened) padStatus("No se encontró ningún juego con ese código. Revisa que la sesión de control remoto siga activa en el otro teléfono (el panel puede estar oculto, pero no debe haberse tocado «Terminar la sesión») y que el código sea el mismo.");
+    }, 12000);
+    padPeer.on("open", function(){
+      try { padConn = padPeer.connect(REMOTE_PREFIX + code.toLowerCase(), { reliable: true }); }
+      catch(e){ clearTimeout(failTimer); padStatus("No se pudo conectar. Inténtalo otra vez."); return; }
+      padConn.on("open", function(){
+        connOpened = true; padConnected = true;
+        clearTimeout(failTimer);
+        padStatus("Conectado. Pidiendo el lugar de Jugador " + padPlayer + "…");
+        sendPadHello();
+        refreshPadPlayerUI();
+        if (navigator.vibrate) { try { navigator.vibrate(30); } catch(e){} }
+      });
+      padConn.on("data", function(data){
+        if (!data || typeof data !== "object") return;
+        if (data.t === "assigned") {
+          padAssignedPlayer = (data.player === 2) ? 2 : 1;
+          padPlayer = padAssignedPlayer;
+          padStatus("✅ Conectado como Jugador " + padAssignedPlayer + ". Todo lo que presiones aquí mueve a tu personaje en el otro teléfono. ¡A jugar!", true);
+          refreshPadPlayerUI();
+          if (navigator.vibrate) { try { navigator.vibrate(30); } catch(e){} }
+        } else if (data.t === "taken") {
+          padAssignedPlayer = null;
+          padHolds = {};
+          padApplyHolds();
+          padStatus("⚠ El Jugador " + ((data.player === 2) ? 2 : 1) + " ya está ocupado por otro teléfono. Tus botones no mueven nada mientras tanto: elige el otro jugador aquí arriba y ese teléfono te pasa a ese lugar.");
+          refreshPadPlayerUI();
+        }
+      });
+      padConn.on("close", function(){
+        padConnected = false;
+        padAssignedPlayer = null;
+        refreshPadPlayerUI();
+        padStatus("Se cortó la conexión. Toca «Conectar» para volver a entrar con el mismo código.");
+      });
+      padConn.on("error", function(){ padConnected = false; });
+    });
+    padPeer.on("error", function(err){
+      clearTimeout(failTimer);
+      if (err && err.type === "peer-unavailable") {
+        padStatus("No se encontró ningún juego con ese código. Revisa que la sesión de control remoto siga activa en el otro teléfono (el panel puede estar oculto, pero no debe haberse tocado «Terminar la sesión») y que el código sea el mismo.");
+      } else {
+        padStatus("Hubo un problema con la conexión (" + (err && err.type ? err.type : "red") + "). Inténtalo otra vez.");
+      }
+    });
+  }
+  $("padConnectBtn").addEventListener("click", connectPad);
+  padCodeInput.addEventListener("keydown", function(e){ if (e.code === "Enter") connectPad(); });
+
+  /* Diseño NES / SNES del control */
+  var padLayoutSnes = $("padLayoutSnes"), padLayoutNes = $("padLayoutNes");
+  function setPadLayout(nes){
+    padStage.classList.toggle("nes-mode", !!nes);
+    padLayoutSnes.setAttribute("aria-pressed", String(!nes));
+    padLayoutNes.setAttribute("aria-pressed", String(!!nes));
+    if (nes) sendPadBtn("x", false), sendPadBtn("y", false), sendPadBtn("l", false), sendPadBtn("r", false);
+  }
+  padLayoutSnes.addEventListener("click", function(){ setPadLayout(false); });
+  padLayoutNes.addEventListener("click", function(){ setPadLayout(true); });
+
+  /* Selector Jugador 1 / Jugador 2 de este control */
+  var padPlayer1Btn = $("padPlayer1Btn"), padPlayer2Btn = $("padPlayer2Btn"),
+      padPlayerState = $("padPlayerState");
+  function refreshPadPlayerUI(){
+    if (padPlayer1Btn) padPlayer1Btn.setAttribute("aria-pressed", String(padPlayer === 1));
+    if (padPlayer2Btn) padPlayer2Btn.setAttribute("aria-pressed", String(padPlayer === 2));
+    if (!padPlayerState) return;
+    if (padConnected && padAssignedPlayer !== null) {
+      padPlayerState.innerHTML = "Este control es: <strong>Jugador " + padAssignedPlayer + " ✅</strong> (confirmado por el teléfono del juego).";
+    } else if (padConnected) {
+      padPlayerState.innerHTML = "Este control pidió ser <strong>Jugador " + padPlayer + "</strong>, pero ese lugar está <strong>ocupado</strong>: elige el otro jugador para entrar.";
+    } else {
+      padPlayerState.innerHTML = "Este control es: <strong>Jugador " + padPlayer + "</strong>. Elige tu jugador antes de conectarte; si ya estás conectado, al cambiarlo te mueves a ese lugar (si está libre).";
+    }
+  }
+  function setPadPlayer(n){
+    n = (n === 2) ? 2 : 1;
+    if (padPlayer === n && padAssignedPlayer === n) { refreshPadPlayerUI(); return; }
+    padPlayer = n;
+    if (padConnected) {
+      /* Moverse de lugar: soltar los botones del lugar anterior y
+         pedir el nuevo; hasta que el anfitrión confirme, este
+         control queda sin lugar y no manda botones. */
+      sendPadReleaseAll();
+      padHolds = {};
+      padApplyHolds();
+      padAssignedPlayer = null;
+      padStatus("Cambiando al lugar de Jugador " + n + "…");
+      sendPadHello();
+    }
+    refreshPadPlayerUI();
+  }
+  if (padPlayer1Btn) padPlayer1Btn.addEventListener("click", function(){ setPadPlayer(1); });
+  if (padPlayer2Btn) padPlayer2Btn.addEventListener("click", function(){ setPadPlayer(2); });
+  refreshPadPlayerUI();
+
+  /* Botones del control: mismos gestos con arrastre que en el emulador,
+     pero cada dedo manda sus botones por la conexión. */
+  var padDpad = padStage.querySelector(".dpad");
+  var padHolds = {};
+  var padBtnEls = {};
+  Array.prototype.forEach.call(padStage.querySelectorAll("[data-rbtn]"), function(el){
+    var n = el.getAttribute("data-rbtn");
+    (padBtnEls[n] = padBtnEls[n] || []).push(el);
+  });
+  function padApplyHolds(){
+    var counts = {};
+    Object.keys(padHolds).forEach(function(id){
+      padHolds[id].forEach(function(n){ counts[n] = (counts[n] || 0) + 1; });
+    });
+    BTN_NAMES.forEach(function(n){
+      var on = !!counts[n];
+      (padBtnEls[n] || []).forEach(function(el){ el.classList.toggle("active", on); });
+      if (on !== !!padApplyHolds["s_" + n]) {
+        padApplyHolds["s_" + n] = on;
+        sendPadBtn(n, on);
+        if (on && navigator.vibrate) { try { navigator.vibrate(8); } catch(e){} }
+      }
+    });
+  }
+  function padSetHold(id, names){
+    var prev = padHolds[id] || [];
+    var same = prev.length === names.length && prev.every(function(n){ return names.indexOf(n) !== -1; });
+    if (same) return;
+    padHolds[id] = names;
+    padApplyHolds();
+  }
+  function padClearHold(id){
+    if (!(id in padHolds)) return;
+    delete padHolds[id];
+    padApplyHolds();
+  }
+  function padDpadNamesAt(x, y){
+    var r = padDpad.getBoundingClientRect();
+    if (!r.width || x < r.left || x > r.right || y < r.top || y > r.bottom) return [];
+    var fx = (x - r.left) / r.width, fy = (y - r.top) / r.height;
+    var names = [];
+    if (fy < 1/3) names.push("up"); else if (fy > 2/3) names.push("down");
+    if (fx < 1/3) names.push("left"); else if (fx > 2/3) names.push("right");
+    return names;
+  }
+  function padBtnNameAt(x, y){
+    var t = document.elementFromPoint(x, y);
+    var b = (t && t.closest) ? t.closest("[data-rbtn]") : null;
+    if (!b || padDpad.contains(b)) return null;
+    if (b.offsetParent === null) return null;
+    return b.getAttribute("data-rbtn");
+  }
+  function padWireSlide(el, namesAt){
+    el.addEventListener("pointerdown", function(e){
+      e.preventDefault();
+      if (el.setPointerCapture && e.pointerId !== undefined) {
+        try { el.setPointerCapture(e.pointerId); } catch(err){}
+      }
+      padSetHold(e.pointerId, namesAt(e.clientX, e.clientY));
+    });
+    el.addEventListener("pointermove", function(e){
+      if (e.pointerId in padHolds) padSetHold(e.pointerId, namesAt(e.clientX, e.clientY));
+    });
+    function release(e){
+      if (e) e.preventDefault();
+      padClearHold(e.pointerId);
+    }
+    el.addEventListener("pointerup", release);
+    el.addEventListener("pointercancel", release);
+    el.addEventListener("lostpointercapture", function(e){ padClearHold(e.pointerId); });
+    el.addEventListener("contextmenu", function(e){ e.preventDefault(); });
+  }
+  padWireSlide(padDpad, padDpadNamesAt);
+  Array.prototype.forEach.call(padStage.querySelectorAll(".abxy [data-rbtn], .meta-row [data-rbtn], .sh-row [data-rbtn]"), function(el){
+    padWireSlide(el, function(x, y){
+      var n = padBtnNameAt(x, y);
+      return n ? [n] : [];
+    });
+  });
+  window.addEventListener("blur", function(){
+    padHolds = {};
+    padApplyHolds();
+  });
+
+  /* Escanear el QR del anfitrión con la cámara (si el navegador trae
+     BarcodeDetector; si no, el código se escribe a mano). */
+  var padScanVideo = $("padScanVideo"), padScanStream = null, padScanTimer = null;
+  function stopPadScan(){
+    if (padScanTimer) { clearInterval(padScanTimer); padScanTimer = null; }
+    if (padScanStream) {
+      padScanStream.getTracks().forEach(function(t){ try { t.stop(); } catch(e){} });
+      padScanStream = null;
+    }
+    padScanVideo.hidden = true;
+  }
+  $("padScanBtn").addEventListener("click", function(){
+    if (!("BarcodeDetector" in window) || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      padStatus("Este navegador no puede escanear QR desde aquí. Escribe el código de 6 caracteres a mano: es el mismo resultado.");
+      return;
+    }
+    var detector;
+    try { detector = new BarcodeDetector({ formats: ["qr_code"] }); }
+    catch(e){ padStatus("Este navegador no pudo abrir el escáner de QR. Escribe el código a mano."); return; }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(function(stream){
+      padScanStream = stream;
+      padScanVideo.srcObject = stream;
+      padScanVideo.hidden = false;
+      padStatus("Apunta la cámara al QR del otro teléfono…");
+      return padScanVideo.play();
+    }).then(function(){
+      padScanTimer = setInterval(function(){
+        if (!padScanStream) return;
+        detector.detect(padScanVideo).then(function(codes){
+          for (var i = 0; i < codes.length; i++) {
+            var m = /IBARRA8:([A-Z0-9]{6})/i.exec(codes[i].rawValue || "");
+            if (m) {
+              stopPadScan();
+              padCodeInput.value = m[1].toUpperCase();
+              connectPad();
+              return;
+            }
+          }
+        }).catch(function(){});
+      }, 350);
+      setTimeout(function(){
+        if (padScanStream) { stopPadScan(); padStatus("No se detectó el QR. Escribe el código a mano o inténtalo otra vez."); }
+      }, 30000);
+    }).catch(function(){
+      padStatus("No se pudo abrir la cámara. Escribe el código de 6 caracteres a mano.");
+    });
+  });
+})();
+</script>
+</body>
+</html>
